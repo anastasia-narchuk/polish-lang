@@ -40,8 +40,6 @@ enum DemoMode {
         app.readings.save(sampleText)
         app.reading.topic = "wizyta u lekarza"
         switch screen {
-        case "reader", "panel":
-            app.reading.open(sampleText)
         case "cards":
             app.tab = .cards
         case "settings":
@@ -126,6 +124,7 @@ enum DemoMode {
 /// The root for the screens that cannot be reached through the menu at launch.
 struct DemoRoot: View {
     let screen: String
+    @Environment(AppModel.self) private var app
     @State private var review = DemoMode.sampleReview()
     @State private var study = DemoMode.sampleStudy()
 
@@ -139,6 +138,13 @@ struct DemoRoot: View {
             StudyView(model: study)
         case "add":
             AddWordsView()
+        case "reader", "panel":
+            // The real path: "Сгенерировать" with the fake Claude, then the app opens the reader.
+            RootView()
+                .task {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    app.reading.generate()
+                }
         default:
             RootView()
         }
