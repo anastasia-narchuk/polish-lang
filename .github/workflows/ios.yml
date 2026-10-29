@@ -82,13 +82,15 @@ jobs:
           mkdir -p shots
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
           shoot() {
-            xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE" -demo -demo-screen "$1"
+            xcrun simctl launch --terminate-running-process --stdout="$PWD/shots/$2.log" --stderr="$PWD/shots/$2.log" "$UDID" "$BUNDLE" -demo -demo-screen "$1"
             sleep "${3:-6}"
             xcrun simctl io "$UDID" screenshot "shots/$2.png"
+            if [ -s "shots/$2.log" ]; then echo "--- $2"; cat "shots/$2.log"; fi
           }
           shoot setup 01-reading-setup 10
           shoot reader 02-reader
           shoot panel 03-reader-translation 8
+          shoot history-open 03b-history-open
           shoot cards 04-cards
           shoot add 05-add-words
           shoot review 06-check-screen 8

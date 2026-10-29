@@ -144,9 +144,26 @@ struct DemoRoot: View {
                 .task {
                     try? await Task.sleep(nanoseconds: 300_000_000)
                     app.reading.generate()
+                    await logState()
+                }
+        case "history-open":
+            RootView()
+                .task {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    app.reading.open(DemoMode.sampleText)
+                    await logState()
                 }
         default:
             RootView()
+        }
+    }
+
+    /// State of the reading tab in the console, for checking the demo runs in CI.
+    private func logState() async {
+        for step in 0..<12 {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            let session = app.reading
+            print("demo[\(step)] phase=\(session.phase) path=\(session.path) current=\(session.current?.title ?? "-") texts=\(app.readings.texts.count)")
         }
     }
 }
