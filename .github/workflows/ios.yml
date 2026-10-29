@@ -91,6 +91,7 @@ jobs:
           shoot reader 02-reader
           shoot panel 03-reader-translation 8
           shoot history-open 03b-history-open
+          shoot history-open-traced 03c-history-open-traced
           shoot cards 04-cards
           shoot add 05-add-words
           shoot review 06-check-screen 8

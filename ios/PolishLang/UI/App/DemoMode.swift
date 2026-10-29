@@ -27,6 +27,18 @@ enum DemoMode {
         screen == "panel" ? "lekarza" : nil
     }
 
+    /// Diagnostics for CI runs: the reading tab reads its path in `body` on "-traced" screens.
+    static var tracesReadingTab: Bool {
+        screen?.hasSuffix("-traced") == true
+    }
+
+    /// Writes to stderr (unbuffered), so the lines survive the app being killed by the next launch.
+    @discardableResult
+    static func trace(_ message: String) -> Bool {
+        if isOn { NSLog("demo: %@", message) }
+        return true
+    }
+
     @MainActor
     static func makeApp() -> AppModel {
         let id = UUID().uuidString
@@ -146,9 +158,10 @@ struct DemoRoot: View {
                     app.reading.generate()
                     await logState()
                 }
-        case "history-open":
+        case "history-open", "history-open-traced":
             RootView()
                 .task {
+                    DemoMode.trace("task started")
                     try? await Task.sleep(nanoseconds: 300_000_000)
                     app.reading.open(DemoMode.sampleText)
                     await logState()
@@ -163,7 +176,7 @@ struct DemoRoot: View {
         for step in 0..<12 {
             try? await Task.sleep(nanoseconds: 250_000_000)
             let session = app.reading
-            print("demo[\(step)] phase=\(session.phase) path=\(session.path) current=\(session.current?.title ?? "-") texts=\(app.readings.texts.count)")
+            DemoMode.trace("[\(step)] phase=\(session.phase) path=\(session.path) current=\(session.current?.title ?? "-") texts=\(app.readings.texts.count)")
         }
     }
 }

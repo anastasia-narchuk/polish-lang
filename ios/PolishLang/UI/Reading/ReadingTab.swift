@@ -5,10 +5,18 @@ struct ReadingTab: View {
 
     var body: some View {
         @Bindable var session = session
+        #if DEBUG
+        let _ = DemoMode.tracesReadingTab
+            ? DemoMode.trace("ReadingTab body path=\(session.path)")
+            : DemoMode.trace("ReadingTab body")
+        #endif
         NavigationStack(path: $session.path) {
             ReadingSetupView()
                 .navigationTitle("Чтение")
                 .navigationDestination(for: ReadingSession.Route.self) { route in
+                    #if DEBUG
+                    let _ = DemoMode.trace("destination \(route)")
+                    #endif
                     switch route {
                     case .reader: ReaderScreen()
                     case .history: ReadingHistoryView()
