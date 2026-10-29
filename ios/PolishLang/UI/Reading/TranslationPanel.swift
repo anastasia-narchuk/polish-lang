@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Translation of the picked word or phrase: on the right on iPad, a bottom sheet on iPhone
-/// (TZ 2, section 5).
+/// Translation of the picked word or phrase: a column on the right on iPad, a bottom sheet on
+/// iPhone (TZ 2, section 5). No NavigationStack inside: the column lives in the reader's stack.
 struct TranslationPanel: View {
     @Bindable var model: ReaderModel
     @Environment(AIService.self) private var ai
@@ -10,7 +10,17 @@ struct TranslationPanel: View {
     @State private var showSentence = false
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Перевод")
+                    .font(.headline)
+                Spacer()
+                Button("Готово") { model.panelPresented = false }
+                    .fontWeight(.semibold)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 4)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if let selection = model.selection {
@@ -24,14 +34,8 @@ struct TranslationPanel: View {
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle("Перевод")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") { model.panelPresented = false }
-                }
-            }
         }
+        .background(Theme.background)
     }
 
     @ViewBuilder

@@ -27,6 +27,7 @@ struct ReaderView: View {
     @Environment(ReadingSession.self) private var session
     @Environment(AIService.self) private var ai
     @Environment(CardStore.self) private var cards
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var model: ReaderModel
 
     init(text: ReadingText) {
@@ -37,19 +38,28 @@ struct ReaderView: View {
         #if DEBUG
         let _ = DemoMode.trace("ReaderView body")
         #endif
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                statusBanners
-                paragraphs
-                legend
-                actions
+        HStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    statusBanners
+                    paragraphs
+                    legend
+                    actions
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .frame(maxWidth: Theme.readerWidth, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .frame(maxWidth: Theme.readerWidth, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            if showsSidePanel {
+                Divider()
+                TranslationPanel(model: model)
+                    .frame(width: 360)
+                    .transition(.move(edge: .trailing))
+            }
         }
+        .animation(.default, value: showsSidePanel)
         .environment(\.openURL, OpenURLAction { url in
             if let tokenID = ReaderLink.tokenID(from: url) {
                 handleTap(tokenID)
@@ -76,11 +86,11 @@ struct ReaderView: View {
                 generatingOverlay
             }
         }
-        .inspector(isPresented: $model.panelPresented) {
+        .sheet(isPresented: sheetPresented) {
             TranslationPanel(model: model)
-                .inspectorColumnWidth(min: 300, ideal: 360, max: 440)
                 .presentationDetents([.medium, .large])
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                .presentationDragIndicator(.visible)
         }
         .onChange(of: model.panelPresented) { _, presented in
             if !presented { model.panelClosed() }
@@ -100,6 +110,19 @@ struct ReaderView: View {
             handleTap(token.id)
         }
         #endif
+    }
+
+    /// The panel is a column on the right on wide screens (iPad) and a bottom sheet on iPhone;
+    /// with the sheet at half height the text stays tappable.
+    private var showsSidePanel: Bool {
+        sizeClass == .regular && model.panelPresented
+    }
+
+    private var sheetPresented: Binding<Bool> {
+        Binding(
+            get: { sizeClass != .regular && model.panelPresented },
+            set: { model.panelPresented = $0 }
+        )
     }
 
     private func handleTap(_ tokenID: Int) {
