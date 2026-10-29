@@ -199,3 +199,21 @@ final class ReadingTests: XCTestCase {
         XCTAssertNil(limiter.acquire(now: start.addingTimeInterval(60)))
     }
 }
+
+final class SmallHelpersTests: XCTestCase {
+    func testReaderLinksRoundTrip() throws {
+        let url = try XCTUnwrap(ReaderLink.url(for: 42))
+        XCTAssertEqual(url.absoluteString, "plword://42")
+        XCTAssertEqual(ReaderLink.tokenID(from: url), 42)
+        XCTAssertNil(ReaderLink.tokenID(from: URL(string: "https://example.com/42")!))
+    }
+
+    func testRussianPlural() {
+        XCTAssertEqual(Russian.words(1), "1 слово")
+        XCTAssertEqual(Russian.words(3), "3 слова")
+        XCTAssertEqual(Russian.words(5), "5 слов")
+        XCTAssertEqual(Russian.words(11), "11 слов")
+        XCTAssertEqual(Russian.words(21), "21 слово")
+        XCTAssertEqual(Russian.words(122), "122 слова")
+    }
+}

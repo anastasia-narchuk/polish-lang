@@ -20,6 +20,8 @@ final class StudyModel: Identifiable {
     private(set) var revealed = false
     private(set) var lastGrade: ReviewGrade?
     private(set) var verdicts: [AnswerVerdict] = []
+    /// Grows with every new card shown; the answer field takes focus again on each step.
+    private(set) var step = 0
     @ObservationIgnored private var cards: [String: Flashcard]
 
     init(cards: [Flashcard]) {
@@ -88,6 +90,7 @@ final class StudyModel: Identifiable {
     func next() {
         guard stage == .checked else { return }
         queue.advance(repeatCard: lastGrade == .again)
+        step += 1
         answer = ""
         hintLevel = 0
         check = nil

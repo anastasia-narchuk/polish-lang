@@ -307,3 +307,58 @@ final class ScreenModelTests: XCTestCase {
         XCTAssertTrue(app.photos.photos(for: photoID).isEmpty)
     }
 }
+
+@MainActor
+final class PhotoImportTests: XCTestCase {
+    private func makeAI(_ replies: [MockTransport.Reply]) -> (AIService, MockTransport) {
+        let secrets = InMemorySecretStore()
+        secrets.save("sk-ant-test", account: "anthropic-api-key")
+        let settings = AppSettings(defaults: UserDefaults(suiteName: "photo-tests-\(UUID().uuidString)")!)
+        let ai = AIService(settings: settings, secrets: secrets)
+        let transport = MockTransport(replies)
+        ai.client = AnthropicClient(transport: transport)
+        return (ai, transport)
+    }
+
+    func testRecognizedWordsGoToTheCheckScreen() async throws {
+        // TZ 1, criterion 7: the underlined words, in the form written.
+        let reply = #"{"items":[{"pl":"rzece","ru":"","base":"","confidence":"high"},{"pl":"poszłam","ru":"(я) пошла","base":"pójść","confidence":"high"},{"pl":"ksi[?]żce","ru":"","base":"","confidence":"low"}]}"#
+        let (ai, transport) = makeAI([messageReply(reply)])
+        let model = PhotoImportModel()
+        model.add([Data([1]), Data([2])])
+        var ready: DraftReviewModel?
+        model.recognize(mode: .highlighted, ai: ai, existingKeys: [PolishText.dedupKey("poszłam")]) { ready = $0 }
+        await model.waitForRecognition()
+
+        let review = try XCTUnwrap(ready)
+        XCTAssertEqual(review.drafts.map(\.pl), ["rzece", "ksi[?]żce"])
+        XCTAssertEqual(review.duplicates, 1)
+        XCTAssertEqual(review.drafts.map(\.include), [true, false], "an unsure reading is unchecked")
+        XCTAssertEqual(review.photos.count, 2)
+        XCTAssertTrue(review.wantBase, "photo rows without a translation or base form go to 4.1")
+        XCTAssertEqual(review.pendingCount, 2)
+        let content = try XCTUnwrap(transport.lastBody?["messages"]?.arrayValue?.first?["content"]?.arrayValue)
+        XCTAssertEqual(content.filter { $0["type"] == "image" }.count, 2)
+        XCTAssertFalse(model.isRecognizing)
+    }
+
+    func testEmptyPhotoResultExplainsWhatToDo() async {
+        let (ai, _) = makeAI([messageReply(#"{"items":[]}"#)])
+        let model = PhotoImportModel()
+        model.add([Data([1])])
+        var opened = false
+        model.recognize(mode: .highlighted, ai: ai, existingKeys: []) { _ in opened = true }
+        await model.waitForRecognition()
+        XCTAssertFalse(opened)
+        XCTAssertEqual(model.message, "Не нашла польских слов на фото. Попробуй режим «Все польские слова» или сфотографируй ближе")
+    }
+
+    func testAtMostThreePhotos() {
+        let model = PhotoImportModel()
+        model.add([Data([1]), Data([2])])
+        model.add([Data([3]), Data([4])])
+        XCTAssertEqual(model.photos.count, 3)
+        XCTAssertNotNil(model.message)
+        XCTAssertFalse(model.canAddMore)
+    }
+}
