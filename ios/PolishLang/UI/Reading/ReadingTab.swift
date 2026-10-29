@@ -18,7 +18,16 @@ struct ReadingTab: View {
                     let _ = DemoMode.trace("destination \(route)")
                     #endif
                     switch route {
-                    case .reader: ReaderScreen()
+                    case .reader:
+                        #if DEBUG
+                        if DemoMode.plainReader {
+                            Text("PLAIN READER").font(.largeTitle)
+                        } else {
+                            ReaderScreen()
+                        }
+                        #else
+                        ReaderScreen()
+                        #endif
                     case .history: ReadingHistoryView()
                     }
                 }

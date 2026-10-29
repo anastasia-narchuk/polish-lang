@@ -32,6 +32,11 @@ enum DemoMode {
         screen?.hasSuffix("-traced") == true
     }
 
+    /// Diagnostics for CI runs: a plain text instead of the reader on "-plain" screens.
+    static var plainReader: Bool {
+        screen?.hasSuffix("-plain") == true
+    }
+
     /// Writes to stderr (unbuffered), so the lines survive the app being killed by the next launch.
     @discardableResult
     static func trace(_ message: String) -> Bool {
@@ -158,7 +163,7 @@ struct DemoRoot: View {
                     app.reading.generate()
                     await logState()
                 }
-        case "history-open", "history-open-traced":
+        case "history-open", "history-open-traced", "history-open-plain":
             RootView()
                 .task {
                     DemoMode.trace("task started")

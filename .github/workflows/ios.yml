@@ -81,6 +81,8 @@ jobs:
           BUNDLE=io.github.anastasia-narchuk.polishlang
           mkdir -p shots
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+          xcrun simctl spawn "$UDID" log stream --style compact --level debug --predicate 'process == "PolishLang"' > shots/system.log 2>&1 &
+          LOG_PID=$!
           shoot() {
             xcrun simctl launch --terminate-running-process --stdout="$PWD/shots/$2.log" --stderr="$PWD/shots/$2.log" "$UDID" "$BUNDLE" -demo -demo-screen "$1"
             sleep "${3:-6}"
@@ -92,6 +94,7 @@ jobs:
           shoot panel 03-reader-translation 8
           shoot history-open 03b-history-open
           shoot history-open-traced 03c-history-open-traced
+          shoot history-open-plain 03d-history-open-plain
           shoot cards 04-cards
           shoot add 05-add-words
           shoot review 06-check-screen 8
@@ -101,6 +104,9 @@ jobs:
           xcrun simctl ui "$UDID" appearance dark
           shoot reader 10-reader-dark
           shoot panel 11-reader-translation-dark 8
+          kill "$LOG_PID" || true
+          echo "--- SwiftUI and navigation messages"
+          grep -iE "swiftui|navigation|destination|inspector|presentation" shots/system.log | grep -v "demo:" | cut -c1-400 | sort | uniq -c | sort -rn | head -80 || true
           ls -la shots
 
       - uses: actions/upload-artifact@v4
