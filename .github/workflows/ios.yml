@@ -45,3 +45,62 @@ jobs:
         working-directory: ios
         run: |
           grep -E "error:" build.log | sort -u | head -200 || true
+
+  screenshots:
+    name: Simulator screenshots (demo data)
+    needs: build
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Boot a simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | test("iOS")) | .value[] | select(.name | test("^iPhone"))] | last | .udid')
+          echo "Simulator: $UDID"
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Build and install the app
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project PolishLang.xcodeproj \
+            -scheme PolishLang \
+            -configuration Debug \
+            -destination "id=$UDID" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tail -5
+          xcrun simctl install "$UDID" build/Build/Products/Debug-iphonesimulator/PolishLang.app
+
+      - name: Take screenshots
+        run: |
+          BUNDLE=io.github.anastasia-narchuk.polishlang
+          mkdir -p shots
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+          shoot() {
+            xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE" -demo -demo-screen "$1"
+            sleep "${3:-6}"
+            xcrun simctl io "$UDID" screenshot "shots/$2.png"
+          }
+          shoot setup 01-reading-setup 10
+          shoot reader 02-reader
+          shoot panel 03-reader-translation 8
+          shoot cards 04-cards
+          shoot add 05-add-words
+          shoot review 06-check-screen 8
+          shoot study 07-review-answer
+          shoot settings 08-settings
+          shoot writing 09-writing
+          xcrun simctl ui "$UDID" appearance dark
+          shoot reader 10-reader-dark
+          shoot panel 11-reader-translation-dark 8
+          ls -la shots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots

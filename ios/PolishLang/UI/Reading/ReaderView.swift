@@ -82,6 +82,16 @@ struct ReaderView: View {
         .onChange(of: cards.revision, initial: true) { _, _ in
             model.updateKnownWords(cards.highlightPhrases)
         }
+        #if DEBUG
+        .task {
+            // Demo screenshots: open the panel for a word without a real tap.
+            guard let word = DemoMode.autoTapWord,
+                  let token = model.document.paragraphs.flatMap(\.tokens).first(where: { $0.text == word })
+            else { return }
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            handleTap(token.id)
+        }
+        #endif
     }
 
     private func handleTap(_ tokenID: Int) {
