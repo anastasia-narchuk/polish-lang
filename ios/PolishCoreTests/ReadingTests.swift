@@ -61,7 +61,7 @@ final class ReadingTests: XCTestCase {
         let text = try ResponseParser.generatedText(from: reply)
         let check = GenerationValidator.check(text, level: .a1)
         XCTAssertEqual(check.wordCount, 10)
-        XCTAssertNotNil(check.lengthWarning, "10 words is far below 60–90")
+        XCTAssertEqual(check.lengthWarning, "Текст короче нормы A1: 10 слов при норме 60–90.")
         XCTAssertFalse(check.hasCyrillic)
         XCTAssertEqual(check.keyWords.map(\.form), ["u lekarza"], "a key word that is not in the text is dropped")
         XCTAssertEqual(check.usedMyWords, ["katar"])

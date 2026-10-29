@@ -5,9 +5,6 @@ struct ReaderScreen: View {
     @Environment(ReadingSession.self) private var session
 
     var body: some View {
-        #if DEBUG
-        let _ = DemoMode.trace("ReaderScreen body current=\(session.current?.title ?? "-")")
-        #endif
         if let text = session.current {
             ReaderView(text: text)
                 .id(text.id)
@@ -35,9 +32,6 @@ struct ReaderView: View {
     }
 
     var body: some View {
-        #if DEBUG
-        let _ = DemoMode.trace("ReaderView body")
-        #endif
         HStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -99,8 +93,6 @@ struct ReaderView: View {
             model.updateKnownWords(cards.highlightPhrases)
         }
         #if DEBUG
-        .onAppear { DemoMode.trace("ReaderView appeared") }
-        .onDisappear { DemoMode.trace("ReaderView disappeared") }
         .task {
             // Demo screenshots: open the panel for a word without a real tap.
             guard let word = DemoMode.autoTapWord,

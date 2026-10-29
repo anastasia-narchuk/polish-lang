@@ -25,7 +25,7 @@ enum GenerationValidator {
         var warning: String?
         if count < lower || count > upper {
             let direction = count < lower ? "короче" : "длиннее"
-            warning = "Текст \(direction) нормы \(level.rawValue): \(count) слов при норме \(range.lowerBound)–\(range.upperBound)."
+            warning = "Текст \(direction) нормы \(level.rawValue): \(Russian.words(count)) при норме \(range.lowerBound)–\(range.upperBound)."
         }
         let hasCyrillic = PolishText.containsCyrillic(text.title) || text.paragraphs.contains(where: PolishText.containsCyrillic)
         let keyWords = text.keyWords.filter { !document.occurrences(of: [$0.form]).isEmpty }
