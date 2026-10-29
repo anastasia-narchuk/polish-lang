@@ -43,4 +43,5 @@ jobs:
       - name: Build errors
         if: failure()
         working-directory: ios
-        run: grep -E "error:|warning: .*(deprecated|ambiguous)" build.log | sort -u | head -200 || true
+        run: |
+          grep -E "error:" build.log | sort -u | head -200 || true
