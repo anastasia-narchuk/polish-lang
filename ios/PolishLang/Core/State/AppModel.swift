@@ -19,6 +19,9 @@ final class AppModel {
     let photos: PhotoStore
     let toasts: ToastCenter
     let reading: ReadingSession
+    let writingTexts: WritingStore
+    let textErrors: TextErrorStore
+    let writing: WritingSession
 
     init(directory: URL = AppDirectories.data, secrets: SecretStore, defaults: UserDefaults = .standard) {
         let settings = AppSettings(defaults: defaults)
@@ -31,9 +34,26 @@ final class AppModel {
         self.cards = cards
         self.mistakes = mistakes
         self.readings = readings
-        self.photos = PhotoStore(directory: directory.appendingPathComponent("photos", isDirectory: true))
-        self.toasts = ToastCenter()
+        let photos = PhotoStore(directory: directory.appendingPathComponent("photos", isDirectory: true))
+        let toasts = ToastCenter()
+        let writingTexts = WritingStore(file: JSONFileStore(url: directory.appendingPathComponent("writing.json")))
+        let textErrors = TextErrorStore(file: JSONFileStore(url: directory.appendingPathComponent("text-errors.json")))
+        self.photos = photos
+        self.toasts = toasts
         self.reading = ReadingSession(ai: ai, cards: cards, mistakes: mistakes, readings: readings, settings: settings)
+        self.writingTexts = writingTexts
+        self.textErrors = textErrors
+        self.writing = WritingSession(
+            ai: ai, cards: cards, mistakes: mistakes, store: writingTexts, errors: textErrors,
+            drafts: WritingDraftStore(file: JSONFileStore(url: directory.appendingPathComponent("writing-draft.json"))),
+            photos: photos, settings: settings, toasts: toasts
+        )
+    }
+
+    /// Deletes a checked text and its photos.
+    func deleteWritingText(id: String) {
+        if let photoID = writingTexts.text(id: id)?.photoId { photos.delete(photoID) }
+        writingTexts.delete(id: id)
     }
 
     /// Deletes cards together with their mistakes and photos nobody refers to any more.

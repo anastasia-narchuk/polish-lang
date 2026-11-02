@@ -6,6 +6,8 @@ struct Backup: Codable {
     var cards: [Flashcard]
     var texts: [ReadingText]
     var mistakes: [Mistake]
+    var writing: [WritingText] = []
+    var textErrors: [TextErrorEntry] = []
 
     func write(to directory: URL = FileManager.default.temporaryDirectory) throws -> URL {
         let formatter = DateFormatter()

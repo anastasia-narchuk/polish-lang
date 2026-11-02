@@ -13,6 +13,8 @@ struct SettingsView: View {
     @Environment(CardStore.self) private var cards
     @Environment(ReadingStore.self) private var readings
     @Environment(MistakeStore.self) private var mistakes
+    @Environment(WritingStore.self) private var writingTexts
+    @Environment(TextErrorStore.self) private var textErrors
     @State private var keyDraft = ""
     @State private var check: CheckState = .idle
     @State private var deleteKeyArmed = false
@@ -218,7 +220,7 @@ struct SettingsView: View {
     }
 
     private var backup: Backup {
-        Backup(exported: Date(), cards: cards.cards, texts: readings.texts, mistakes: mistakes.mistakes)
+        Backup(exported: Date(), cards: cards.cards, texts: readings.texts, mistakes: mistakes.mistakes, writing: writingTexts.texts, textErrors: textErrors.entries)
     }
 
     private var appVersion: String {

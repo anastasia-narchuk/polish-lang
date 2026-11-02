@@ -15,6 +15,10 @@ final class AppSettings {
         static let geminiModel = "ai.geminiModel"
         static let baseURL = "ai.baseURL"
         static let refusalFallback = "ai.refusalFallback"
+        static let writing = "writing.settings"
+        static let writingStep = "writing.step"
+        static let egzaminUnlocked = "writing.egzaminUnlocked"
+        static let nextExamLength = "writing.nextExamLength"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -60,6 +64,28 @@ final class AppSettings {
         didSet { defaults.set(refusalFallback, forKey: Key.refusalFallback) }
     }
 
+    /// Exam level, word limits, task weights and time of the writing module (TZ 3, section 10).
+    var writing: WritingSettings {
+        didSet {
+            if let data = try? JSONEncoder().encode(writing) { defaults.set(data, forKey: Key.writing) }
+        }
+    }
+
+    /// The current step of the writing ladder.
+    var writingStep: WritingStep {
+        didSet { defaults.set(writingStep.rawValue, forKey: Key.writingStep) }
+    }
+
+    /// Egzamin was opened early or by progress.
+    var egzaminUnlocked: Bool {
+        didSet { defaults.set(egzaminUnlocked, forKey: Key.egzaminUnlocked) }
+    }
+
+    /// The Egzamin step alternates the short and the long form.
+    var nextExamLength: TaskLength {
+        didSet { defaults.set(nextExamLength.rawValue, forKey: Key.nextExamLength) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         readingLevel = defaults.string(forKey: Key.readingLevel).flatMap(CEFRLevel.init(rawValue:)) ?? .default
@@ -71,6 +97,10 @@ final class AppSettings {
         geminiModel = defaults.string(forKey: Key.geminiModel) ?? GeminiClient.defaultModel
         baseURLString = defaults.string(forKey: Key.baseURL) ?? AIConfiguration.defaultBaseURL.absoluteString
         refusalFallback = defaults.object(forKey: Key.refusalFallback) as? Bool ?? true
+        writing = defaults.data(forKey: Key.writing).flatMap { try? JSONDecoder().decode(WritingSettings.self, from: $0) } ?? WritingSettings()
+        writingStep = defaults.string(forKey: Key.writingStep).flatMap(WritingStep.init(rawValue:)) ?? .akapit
+        egzaminUnlocked = defaults.object(forKey: Key.egzaminUnlocked) as? Bool ?? false
+        nextExamLength = defaults.string(forKey: Key.nextExamLength).flatMap(TaskLength.init(rawValue:)) ?? .short
     }
 
     func resetConnection() {

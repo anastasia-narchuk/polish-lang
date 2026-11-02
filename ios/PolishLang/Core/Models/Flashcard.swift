@@ -1,7 +1,7 @@
 import Foundation
 
 enum CardSource: String, Codable, CaseIterable, Sendable {
-    case manual, list, photo, text
+    case manual, list, photo, text, writing
 
     init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -14,6 +14,7 @@ enum CardSource: String, Codable, CaseIterable, Sendable {
         case .list: return "списком"
         case .photo: return "с фото"
         case .text: return "из текста"
+        case .writing: return "из письма"
         }
     }
 }
