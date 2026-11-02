@@ -28,3 +28,10 @@ venv/
 
 # Logs
 *.log
+
+# Xcode / SwiftPM
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
