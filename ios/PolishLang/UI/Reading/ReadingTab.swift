@@ -126,7 +126,7 @@ struct ReadingSetupView: View {
                 generateButton(enabled: canGenerate)
             }
             if !ai.hasKey {
-                Banner(text: "Генерация недоступна: добавь API-ключ Claude в настройках. История и сохранённые тексты читаются как обычно.", style: .info)
+                Banner(text: "Генерация недоступна: добавь API-ключ Claude или Gemini в настройках. История и сохранённые тексты читаются как обычно.", style: .info)
                 Button("Открыть настройки") { app.tab = .settings }
                     .buttonStyle(.pill(.inverse, size: .medium))
             } else if session.topic.trimmed.isEmpty {

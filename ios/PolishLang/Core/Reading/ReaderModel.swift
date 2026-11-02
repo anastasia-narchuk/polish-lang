@@ -98,7 +98,7 @@ final class ReaderModel {
             return
         }
         guard ai.hasKey else {
-            translation = .failed(message: "Перевод недоступен: AI не подключён. Добавь API-ключ Claude в настройках.", retryAfter: nil)
+            translation = .failed(message: "Перевод недоступен: AI не подключён. Добавь API-ключ Claude или Gemini в настройках.", retryAfter: nil)
             return
         }
         translation = .loading

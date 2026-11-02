@@ -13,7 +13,7 @@ struct PolishAI: Sendable {
     /// Photos per recognition request (TZ 1, section 2.3).
     static let maxPhotos = 3
 
-    var client = AnthropicClient()
+    var client: any AIBackend = AnthropicClient()
     var config: AIConfiguration
 
     /// TZ 1, 4.1, in batches of 40. A failed batch leaves its rows empty and stops the rest.
@@ -70,6 +70,35 @@ struct PolishAI: Sendable {
             config: config
         )
         return try ResponseParser.generatedText(from: response.text)
+    }
+
+    /// TZ 3, 7.1 (or "Свой текст"): a task from a prepared prompt.
+    func writingTask(prompt: String) async throws -> WritingTask {
+        let response = try await client.send(
+            AIRequest(prompt: prompt, maxTokens: 16_000, effort: .medium, schema: WritingPrompts.taskSchema),
+            config: config
+        )
+        return try WritingParser.task(from: response.text)
+    }
+
+    /// TZ 3, 7.2: the handwritten text word for word, as plain text.
+    func transcribe(images: [AIImage]) async throws -> String {
+        let response = try await client.send(
+            AIRequest(prompt: WritingPrompts.transcribe, images: Array(images.prefix(Self.maxPhotos)), maxTokens: 16_000, effort: .medium),
+            config: config
+        )
+        let text = response.text.trimmed
+        guard !text.isEmpty else { throw AIError.invalidResponse }
+        return text
+    }
+
+    /// TZ 3, 7.4: the full check of a text.
+    func checkText(task: WritingTask, text: String) async throws -> TextCheck {
+        let response = try await client.send(
+            AIRequest(prompt: WritingPrompts.check(task: task, text: text), maxTokens: 24_000, effort: .medium, schema: WritingPrompts.checkSchema),
+            config: config
+        )
+        return try WritingParser.check(from: response.text)
     }
 
     /// TZ 2, 4.2.

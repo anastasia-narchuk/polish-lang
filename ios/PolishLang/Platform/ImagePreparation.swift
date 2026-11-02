@@ -24,6 +24,22 @@ enum ImagePreparation {
         return try jpeg(from: image)
     }
 
+    /// The photo turned by 90° clockwise, for a sheet shot sideways (TZ 3, 4.2).
+    static func rotatedClockwise(_ data: Data) throws -> Data {
+        guard let image = UIImage(data: data), image.size.width > 0, image.size.height > 0 else { throw Failure.unreadable }
+        let target = CGSize(width: image.size.height, height: image.size.width)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        format.opaque = true
+        let rotated = UIGraphicsImageRenderer(size: target, format: format).image { context in
+            context.cgContext.translateBy(x: target.width, y: 0)
+            context.cgContext.rotate(by: .pi / 2)
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }
+        guard let jpeg = rotated.jpegData(compressionQuality: 0.8) else { throw Failure.unreadable }
+        return jpeg
+    }
+
     static func jpeg(from image: UIImage) throws -> Data {
         let size = image.size
         guard size.width > 0, size.height > 0 else { throw Failure.unreadable }

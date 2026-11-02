@@ -96,9 +96,14 @@ jobs:
           shoot study 07-review-answer
           shoot settings 08-settings
           shoot writing 09-writing
+          shoot workspace 14-writing-workspace 10
+          shoot feedback 15-writing-feedback
+          shoot feedback-text 19-writing-feedback-text 8
           xcrun simctl ui "$UDID" appearance dark
           shoot reader 10-reader-dark
           shoot panel 11-reader-translation-dark 8
+          shoot workspace 16-writing-workspace-dark 10
+          shoot feedback 17-writing-feedback-dark
           xcrun simctl ui "$UDID" appearance light
           IPAD=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | test("iOS")) | .value[] | select(.name | test("^iPad"))] | last | .udid')
           if [ -n "$IPAD" ] && [ "$IPAD" != "null" ]; then
@@ -109,6 +114,7 @@ jobs:
             xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
             shoot panel 12-ipad-reader-translation 10
             shoot cards 13-ipad-cards
+            shoot workspace 18-ipad-writing-workspace 12
           fi
           find shots -name "*.log" -size 0 -delete
           ls -la shots
