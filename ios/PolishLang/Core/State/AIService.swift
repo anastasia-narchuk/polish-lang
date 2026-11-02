@@ -111,7 +111,8 @@ final class AIService {
                 provider: .gemini,
                 model: model.isEmpty ? GeminiClient.defaultModel : model,
                 baseURL: GeminiClient.defaultBaseURL,
-                refusalFallback: false
+                refusalFallback: false,
+                overloadFallbackModel: settings.geminiFallback ? GeminiClient.fallbackModel : nil
             )
             return PolishAI(client: geminiClient, config: config)
         }

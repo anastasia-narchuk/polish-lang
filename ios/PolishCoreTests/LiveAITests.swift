@@ -62,6 +62,48 @@ final class LiveAITests: XCTestCase {
     }
 }
 
+extension LiveAITests {
+    /// TZ 3, 7.1: a B1 exam task with points, plan, connectors and ideas.
+    func testWritingTask() async throws {
+        let ai = try liveAI()
+        let prompt = WritingPrompts.task(level: .b1, form: WritingForm.complaint.promptName, topic: "zakupy", words: "około 150", must: [], mustConnectors: [])
+        let task = try await ai.writingTask(prompt: prompt)
+        print("LIVE task:", task.form, "|", task.register, "|", task.polecenie, "|", task.punkty, "|", task.plan.map(\.ru), "|", task.connectors, "|", task.ideas.map { "\($0.ru) → \($0.pl)" })
+        XCTAssertTrue((3...4).contains(task.punkty.count))
+        XCTAssertTrue((3...4).contains(task.plan.count))
+        XCTAssertTrue((4...6).contains(task.connectors.count))
+        XCTAssertTrue((5...6).contains(task.ideas.count))
+        XCTAssertFalse(PolishText.containsCyrillic(task.polecenie))
+    }
+
+    /// TZ 3, criteria 4 and 5: a letter that misses a point and mixes "Szanowny Panie" with "jak się masz?".
+    func testCheckFindsMissedPointAndMixedRegister() async throws {
+        let ai = try liveAI()
+        let task = WritingTask(
+            form: "reklamacja", register: "formalny",
+            polecenie: "Kupiłaś w sklepie internetowym ekspres do kawy, który po tygodniu przestał działać. Napisz reklamację do sklepu.",
+            punkty: ["Napisz, co i kiedy kupiłaś.", "Opisz, co się zepsuło.", "Napisz, czego oczekujesz od sklepu."],
+            words: 150, ru: "", plan: [], connectors: [], ideas: [], level: .b1, kind: .complaint, length: .long
+        )
+        let text = """
+        Szanowny Panie,
+        piszę do Pana, bo 3 października kupiłam w Waszym sklepie ekspres do kawy marki Kawex. Jak się masz? Niestety po tygodniu ekspres przestał działać: nie grzeje wody i nie robi kawy. Bardzo mnie to zdenerwowało, bo to był prezent dla mojej mamy. Ekspres był drogi i myślałam, że będzie dobrej jakości. Mam nadzieję, że szybko mi Pan odpowie.
+        Pozdrawiam, Anna Nowak
+        """
+        let raw = try await ai.checkText(task: task, text: text)
+        print("LIVE check raw points:", raw.points.map { "\($0.status.rawValue): \($0.punkt)" })
+        print("LIVE check raw register:", raw.register, "scores:", raw.scores, "percent:", raw.scores.percent)
+        print("LIVE check errors:", raw.errors.map { "\($0.fragment) → \($0.correction) [\($0.type)] \($0.ruleRu)" })
+        print("LIVE check summary:", raw.summaryRu, "| new words:", raw.newWords.map(\.pl), "| upgrade:", raw.upgrade.map(\.better))
+        let guarded = WritingRules.applyGuards(raw, text: text)
+        XCTAssertEqual(guarded.points.last?.status, .no, "the expectation point is missing")
+        XCTAssertLessThanOrEqual(guarded.scores.zadanie, 3)
+        XCTAssertFalse(guarded.register.consistent)
+        let ranges = WritingRules.errorRanges(in: text, errors: raw.errors)
+        print("LIVE fragments found in the text: \(ranges.count) of \(raw.errors.count)")
+    }
+}
+
 extension AIConfiguration {
     func with(apiKey: String) -> AIConfiguration {
         var copy = self

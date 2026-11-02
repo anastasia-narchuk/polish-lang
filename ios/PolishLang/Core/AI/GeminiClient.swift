@@ -7,6 +7,8 @@ import FoundationNetworking
 /// structured output goes to `responseJsonSchema`, images become inline parts before the text.
 struct GeminiClient: AIBackend {
     static let defaultModel = "gemini-3.5-flash"
+    /// Answers when the chosen model is overloaded: the free tier often is (seen 02.11).
+    static let fallbackModel = "gemini-3.5-flash-lite"
     static let defaultBaseURL = URL(string: "https://generativelanguage.googleapis.com")!
 
     var transport: HTTPTransport = URLSessionTransport()
@@ -14,6 +16,18 @@ struct GeminiClient: AIBackend {
 
     func send(_ request: AIRequest, config: AIConfiguration) async throws -> AIResponse {
         guard !config.apiKey.trimmed.isEmpty else { throw AIError.notConfigured }
+        do {
+            return try await perform(request, config: config)
+        } catch AIError.overloaded {
+            // One repeat with the lighter model, not a loop.
+            guard let fallback = config.overloadFallbackModel, fallback != config.model else { throw AIError.overloaded }
+            var lighter = config
+            lighter.model = fallback
+            return try await perform(request, config: lighter)
+        }
+    }
+
+    private func perform(_ request: AIRequest, config: AIConfiguration) async throws -> AIResponse {
         let urlRequest = try makeURLRequest(request, config: config)
         let (data, http) = try await sendMapped(urlRequest)
         guard (200..<300).contains(http.statusCode) else { throw Self.error(for: http, data: data, model: config.model) }

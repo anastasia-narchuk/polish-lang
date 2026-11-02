@@ -212,11 +212,26 @@ final class WritingTests: XCTestCase {
         workspace.transcript = "Cześć Kasiu! Mam nowe mieszkanie. Mam jasna kuchnie."
         workspace.check()
         await workspace.waitForWork()
+        XCTAssertEqual(transport.requests.count, 3, "the confirmed transcript goes to the check, the photos are not read again")
         let saved = try! XCTUnwrap(workspace.result)
         XCTAssertTrue(saved.hand)
         XCTAssertEqual(saved.text, "Cześć Kasiu! Mam nowe mieszkanie. Mam jasna kuchnie.")
         XCTAssertNotNil(saved.photoId)
         XCTAssertEqual(app.photos.photos(for: saved.photoId!).count, 2)
+    }
+
+    func testAnotherTaskOfAResumedDraftKeepsTheForm() async {
+        let (app, transport) = makeApp(replies: [messageReply(Self.taskJSON), messageReply(Self.taskJSON)])
+        app.writing.start(.form(.complaint, topic: "zakupy"))
+        await app.writing.waitForGeneration()
+        app.writing.workspace?.saveDraftNow()
+        let again = AppModel(directory: directory, secrets: { let s = InMemorySecretStore(); s.save("sk-ant-test", account: "anthropic-api-key"); return s }(), defaults: UserDefaults(suiteName: "polish-writing-\(UUID().uuidString)")!)
+        again.ai.client = AnthropicClient(transport: transport)
+        again.writing.resumeDraft()
+        again.writing.anotherTask()
+        await again.writing.waitForGeneration()
+        XCTAssertEqual(again.writing.workspace?.task.kind, .complaint)
+        XCTAssertTrue(Self.prompt(transport, 1).contains("Forma: reklamacja. Temat: zakupy."))
     }
 
     func testCheckFailureKeepsTheDraftAndOffersRetry() async {

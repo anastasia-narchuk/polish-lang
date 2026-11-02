@@ -14,6 +14,8 @@ struct AIConfiguration: Equatable, Sendable {
     var model: String = AIConfiguration.defaultModel
     var baseURL: URL = AIConfiguration.defaultBaseURL
     var refusalFallback: Bool = true
+    /// Gemini: a lighter model that answers once when the chosen one is overloaded (503).
+    var overloadFallbackModel: String?
 }
 
 enum AIEffort: String, Sendable {

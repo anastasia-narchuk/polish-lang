@@ -99,6 +99,26 @@ final class GeminiTests: XCTestCase {
         }
     }
 
+    func testOverloadedModelFallsBackOnceToTheLighterOne() async throws {
+        let busy = MockTransport.Reply(status: 503, body: #"{"error":{"code":503,"message":"This model is currently experiencing high demand.","status":"UNAVAILABLE"}}"#)
+        var config = geminiConfig()
+        config.overloadFallbackModel = GeminiClient.fallbackModel
+        let transport = MockTransport([busy, geminiReply("ok")])
+        let response = try await GeminiClient(transport: transport).send(AIRequest(prompt: "x", maxTokens: 10, effort: .low), config: config)
+        XCTAssertEqual(response.text, "ok")
+        XCTAssertEqual(transport.requests.count, 2)
+        XCTAssertTrue(transport.requests[1].url?.absoluteString.hasSuffix("models/gemini-3.5-flash-lite:generateContent") == true)
+
+        let bothBusy = MockTransport([busy, busy, geminiReply("never")])
+        do {
+            _ = try await GeminiClient(transport: bothBusy).send(AIRequest(prompt: "x", maxTokens: 10, effort: .low), config: config)
+            XCTFail("expected overloaded")
+        } catch {
+            XCTAssertEqual(error as? AIError, .overloaded)
+            XCTAssertEqual(bothBusy.requests.count, 2, "one repeat, not a loop")
+        }
+    }
+
     func testCheckConnectionSpendsOneSmallRequest() async throws {
         let transport = MockTransport([geminiReply("ta", finishReason: "MAX_TOKENS")])
         try await GeminiClient(transport: transport).checkConnection(config: geminiConfig())

@@ -13,6 +13,7 @@ final class AppSettings {
         static let provider = "ai.provider"
         static let model = "ai.model"
         static let geminiModel = "ai.geminiModel"
+        static let geminiFallback = "ai.geminiFallback"
         static let baseURL = "ai.baseURL"
         static let refusalFallback = "ai.refusalFallback"
         static let writing = "writing.settings"
@@ -56,6 +57,11 @@ final class AppSettings {
         didSet { defaults.set(geminiModel, forKey: Key.geminiModel) }
     }
 
+    /// When the Gemini model is overloaded, ask the lighter one once.
+    var geminiFallback: Bool {
+        didSet { defaults.set(geminiFallback, forKey: Key.geminiFallback) }
+    }
+
     var baseURLString: String {
         didSet { defaults.set(baseURLString, forKey: Key.baseURL) }
     }
@@ -95,6 +101,7 @@ final class AppSettings {
         provider = defaults.string(forKey: Key.provider).flatMap(AIProvider.init(rawValue:)) ?? .claude
         model = defaults.string(forKey: Key.model) ?? AIConfiguration.defaultModel
         geminiModel = defaults.string(forKey: Key.geminiModel) ?? GeminiClient.defaultModel
+        geminiFallback = defaults.object(forKey: Key.geminiFallback) as? Bool ?? true
         baseURLString = defaults.string(forKey: Key.baseURL) ?? AIConfiguration.defaultBaseURL.absoluteString
         refusalFallback = defaults.object(forKey: Key.refusalFallback) as? Bool ?? true
         writing = defaults.data(forKey: Key.writing).flatMap { try? JSONDecoder().decode(WritingSettings.self, from: $0) } ?? WritingSettings()
@@ -106,6 +113,7 @@ final class AppSettings {
     func resetConnection() {
         model = AIConfiguration.defaultModel
         geminiModel = GeminiClient.defaultModel
+        geminiFallback = true
         baseURLString = AIConfiguration.defaultBaseURL.absoluteString
         refusalFallback = true
     }

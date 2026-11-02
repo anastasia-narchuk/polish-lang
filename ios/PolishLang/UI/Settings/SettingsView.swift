@@ -184,7 +184,7 @@ struct SettingsView: View {
 
     private var advancedGroup: some View {
         @Bindable var settings = settings
-        return group("Для опытных", footer: "По умолчанию: Claude — \(AIConfiguration.defaultModel) и \(AIConfiguration.defaultBaseURL.absoluteString), Gemini — \(GeminiClient.defaultModel). Адрес Claude можно заменить на свой прокси, совместимый с Messages API. Резервная модель (только для Claude): если Claude откажется отвечать из-за правил безопасности, запрос повторит другая модель (бета-функция API).") {
+        return group("Для опытных", footer: "По умолчанию: Claude — \(AIConfiguration.defaultModel) и \(AIConfiguration.defaultBaseURL.absoluteString), Gemini — \(GeminiClient.defaultModel). Адрес Claude можно заменить на свой прокси, совместимый с Messages API. Резервная модель (только для Claude): если Claude откажется отвечать из-за правил безопасности, запрос повторит другая модель (бета-функция API). Gemini на бесплатном тарифе часто перегружен (503): тогда запрос один раз повторит облегчённая модель — она быстрее, но чаще ошибается.") {
             VStack(alignment: .leading, spacing: 16) {
                 LabeledTextField(title: "Модель Claude", text: $settings.model, polish: false)
                 LabeledTextField(title: "Адрес API Claude", text: $settings.baseURLString, polish: false, keyboard: .URL)
@@ -193,6 +193,8 @@ struct SettingsView: View {
             .padding(.vertical, 20)
             Hairline()
             toggleRow("Резервная модель Claude при отказе", isOn: $settings.refusalFallback)
+            Hairline()
+            toggleRow("Gemini: при перегрузке — \(GeminiClient.fallbackModel)", isOn: $settings.geminiFallback)
             Hairline()
             Button("Вернуть по умолчанию") {
                 settings.resetConnection()

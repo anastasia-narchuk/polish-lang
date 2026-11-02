@@ -124,9 +124,14 @@ final class WorkspaceModel: Identifiable {
         phase == .transcribing || phase == .checking
     }
 
+    /// The photos were read; a failed check repeats only the check, keeping the learner's fixes.
+    var hasTranscript: Bool {
+        !transcript.trimmed.isEmpty
+    }
+
     var canCheck: Bool {
         guard !isWorking else { return false }
-        if hand, phase != .reviewingTranscript { return !photos.isEmpty }
+        if hand && !hasTranscript { return !photos.isEmpty }
         return wordCount >= WritingRules.minimumWords
     }
 
@@ -194,7 +199,7 @@ final class WorkspaceModel: Identifiable {
     /// transcript is shown for confirmation.
     func check() {
         guard canCheck else { return }
-        if hand && phase != .reviewingTranscript {
+        if hand && !hasTranscript {
             run { await self.transcribe() }
         } else {
             let text = currentText
@@ -209,7 +214,7 @@ final class WorkspaceModel: Identifiable {
     func stop() {
         task_?.cancel()
         task_ = nil
-        phase = hand && !transcript.isEmpty ? .reviewingTranscript : .writing
+        phase = hand && hasTranscript ? .reviewingTranscript : .writing
     }
 
     /// Waits for the running request (used by tests).

@@ -140,6 +140,20 @@ final class WritingSession {
         if let lastStart { start(lastStart) }
     }
 
+    /// "Другая тема": the same kind of task again; the current text is dropped (the button asked first).
+    func anotherTask() {
+        let next: Start
+        if let lastStart {
+            next = lastStart
+        } else if let task = workspace?.task ?? savedDraft?.task, let kind = task.kind {
+            next = .form(kind, topic: task.topic)
+        } else {
+            next = .today
+        }
+        discardDraft()
+        start(next)
+    }
+
     func stop() {
         task?.cancel()
         task = nil

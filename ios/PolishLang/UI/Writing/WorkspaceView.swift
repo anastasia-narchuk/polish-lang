@@ -189,17 +189,18 @@ struct WorkspaceView: View {
                     .font(.ui(.footnote))
                     .foregroundStyle(Theme.textSecondary)
                 Spacer(minLength: 8)
-                Button(regenerateArmed ? "Текст удалится. Точно?" : "Другая тема") {
-                    if model.currentText.trimmed.isEmpty || regenerateArmed {
-                        regenerateArmed = false
-                        session.discardDraft()
-                        session.retry()
-                    } else {
-                        regenerateArmed = true
+                if model.mode != .own {
+                    Button(regenerateArmed ? "Текст удалится. Точно?" : "Другая тема") {
+                        if model.currentText.trimmed.isEmpty || regenerateArmed {
+                            regenerateArmed = false
+                            session.anotherTask()
+                        } else {
+                            regenerateArmed = true
+                        }
                     }
+                    .buttonStyle(.pill(regenerateArmed ? .destructive : .tertiary, size: .small))
+                    .disabled(model.isWorking || session.isGenerating || !ai.hasKey)
                 }
-                .buttonStyle(.pill(regenerateArmed ? .destructive : .tertiary, size: .small))
-                .disabled(model.isWorking || session.isGenerating || !ai.hasKey)
             }
         }
         .cardBackground(padding: 20)
@@ -288,7 +289,7 @@ struct WorkspaceView: View {
     @ViewBuilder
     private var handPane: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if model.phase != .reviewingTranscript {
+            if !model.hasTranscript {
                 Banner(text: "Пиши на бумаге, без телефона и словаря. Потом сфотографируй лист целиком при хорошем свете, один лист в кадре: до \(PolishAI.maxPhotos) фото.", style: .info)
             }
             if !model.photos.isEmpty {
@@ -315,7 +316,7 @@ struct WorkspaceView: View {
             if let photoMessage {
                 Banner(text: photoMessage, style: .warning)
             }
-            if model.phase == .reviewingTranscript {
+            if model.hasTranscript {
                 transcriptReview
             }
         }
@@ -436,7 +437,7 @@ struct WorkspaceView: View {
         Button {
             model.check()
         } label: {
-            Label(checkTitle, systemImage: model.hand && model.phase != .reviewingTranscript ? "text.viewfinder" : "checkmark.seal")
+            Label(checkTitle, systemImage: model.hand && !model.hasTranscript ? "text.viewfinder" : "checkmark.seal")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.pill(.primary))
@@ -445,7 +446,7 @@ struct WorkspaceView: View {
 
     private var checkTitle: String {
         if model.hand {
-            return model.phase == .reviewingTranscript ? "Всё верно, разобрать с коучем" : "Распознать рукопись"
+            return model.hasTranscript ? "Всё верно, разобрать с коучем" : "Распознать рукопись"
         }
         return "Разобрать с коучем"
     }
