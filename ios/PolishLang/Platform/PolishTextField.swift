@@ -16,7 +16,9 @@ struct PolishTextField: UIViewRepresentable {
         let field = PolishUITextField()
         field.delegate = context.coordinator
         field.placeholder = placeholder
-        field.font = UIFont.preferredFont(forTextStyle: .title2).withSerifDesign()
+        field.font = InterFont.uiFont(.medium, size: 22, relativeTo: .title2) ?? UIFont.preferredFont(forTextStyle: .title2)
+        field.textColor = UIColor(Theme.text)
+        field.tintColor = UIColor(Theme.ink)
         field.adjustsFontForContentSizeCategory = true
         field.autocorrectionType = .no
         field.autocapitalizationType = .none

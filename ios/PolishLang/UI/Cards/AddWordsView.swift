@@ -41,38 +41,40 @@ struct AddWordsView: View {
     var body: some View {
         @Bindable var settings = settings
         NavigationStack {
-            Form {
-                Section {
-                    Picker("Способ", selection: $mode) {
-                        ForEach(Mode.allCases) { mode in
-                            Text(mode.title).tag(mode)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    SegmentedPills(items: Mode.allCases, title: { $0.title }, selection: $mode)
+
+                    switch mode {
+                    case .single: singleSections
+                    case .list: listSections
+                    case .photo: photoSections
+                    }
+
+                    if mode != .photo {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle("Определять начальную форму", isOn: $settings.wantBaseForms)
+                                .font(.ui(.headline))
+                            Text("AI добавит начальную форму, грамматическую пометку и чередование даже к словам с готовым переводом. Если выключить, такие слова сохраняются сразу.")
+                                .font(.ui(.footnote))
+                                .foregroundStyle(Theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
+                        .cardBackground(padding: 20)
                     }
-                    .pickerStyle(.segmented)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
 
-                switch mode {
-                case .single: singleSections
-                case .list: listSections
-                case .photo: photoSections
-                }
-
-                if mode != .photo {
-                    Section {
-                        Toggle("Определять начальную форму", isOn: $settings.wantBaseForms)
-                    } footer: {
-                        Text("AI добавит начальную форму, грамматическую пометку и чередование даже к словам с готовым переводом. Если выключить, такие слова сохраняются сразу.")
-                    }
-                }
-
-                if !ai.hasKey {
-                    Section {
+                    if !ai.hasKey {
                         Banner(text: "AI не подключён: перевод можно вписать вручную. API-ключ добавляется в настройках.", style: .info)
                     }
                 }
+                .padding(.horizontal, Theme.Space.screen)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
+                .frame(maxWidth: Theme.maxContentWidth)
+                .frame(maxWidth: .infinity)
             }
+            .screenBackground()
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Новые слова")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -111,36 +113,41 @@ struct AddWordsView: View {
 
     @ViewBuilder
     private var singleSections: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("В той форме, как встретилось: rzece, poszłam, przy rzece")
+                .font(.ui(.footnote, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
             TextField("По-польски", text: $pl)
-                .font(Theme.polish(.title3))
+                .font(.ui(.title3, weight: .medium))
                 .focused($focus, equals: .pl)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.next)
                 .onSubmit { focus = .base }
+                .fieldBackground(isFocused: focus == .pl)
             TextField("Начальная форма (необязательно)", text: $base)
-                .font(Theme.polish(.body))
                 .focused($focus, equals: .base)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.next)
                 .onSubmit { focus = .ru }
+                .fieldBackground(isFocused: focus == .base)
             TextField("Перевод (необязательно)", text: $ru)
                 .focused($focus, equals: .ru)
                 .submitLabel(.done)
                 .onSubmit(addSingle)
-        } header: {
-            Text("В той форме, как встретилось: rzece, poszłam, przy rzece")
-        } footer: {
+                .fieldBackground(isFocused: focus == .ru)
             Text("Без перевода AI подберёт его сам — так, чтобы по нему вспоминалась именно эта форма.")
-        }
-        Section {
+                .font(.ui(.footnote))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             Button(action: addSingle) {
-                Label("Добавить", systemImage: "plus.circle.fill")
+                Label("Добавить", systemImage: "plus")
                     .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.pill(.primary))
             .disabled(pl.trimmed.isEmpty)
+            .padding(.top, 4)
         }
     }
 
@@ -159,34 +166,39 @@ struct AddWordsView: View {
 
     @ViewBuilder
     private var listSections: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Список")
+                .font(.ui(.footnote, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
             ZStack(alignment: .topLeading) {
                 if listText.isEmpty {
                     Text(verbatim: "rzece\nrzece — реке\nrzece [rzeka] — реке\nmorzu, przy rzece, poszłam")
-                        .font(Theme.polish(.body))
-                        .foregroundStyle(.tertiary)
+                        .font(.ui(.body))
+                        .foregroundStyle(Theme.textTertiary)
                         .padding(.top, 8)
                         .padding(.leading, 5)
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $listText)
-                    .font(Theme.polish(.body))
+                    .font(.ui(.body))
+                    .scrollContentBackground(.hidden)
                     .focused($focus, equals: .list)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .frame(minHeight: 180)
             }
-        } header: {
-            Text("Список")
-        } footer: {
+            .fieldBackground(isFocused: focus == .list)
             Text("Строка — слово или фраза. Перевод — через тире с пробелами или Tab, начальная форма — в [квадратных скобках]. Одна строка без тире делится по запятым.")
-        }
-        Section {
+                .font(.ui(.footnote))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             Button(action: addList) {
                 Label("Разобрать и добавить", systemImage: "list.bullet.rectangle")
                     .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.pill(.primary))
             .disabled(listText.trimmed.isEmpty)
+            .padding(.top, 4)
         }
     }
 
@@ -225,24 +237,22 @@ struct AddWordsView: View {
     @ViewBuilder
     private var photoSections: some View {
         @Bindable var settings = settings
-        Section {
-            Picker("Что брать с фото", selection: $settings.photoMode) {
-                ForEach(PhotoMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Фото тетради, учебника или доски")
+                .font(.ui(.footnote, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+            SegmentedPills(items: PhotoMode.allCases, title: { $0.title }, selection: $settings.photoMode)
             if !photoImport.photos.isEmpty {
                 photoThumbnails
             }
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 if DocumentScanner.isSupported {
                     Button {
                         showScanner = true
                     } label: {
                         Label("Сканировать", systemImage: "doc.viewfinder")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.pill(.secondary, size: .medium))
                 }
                 PhotosPicker(
                     selection: $pickerItems,
@@ -251,27 +261,19 @@ struct AddWordsView: View {
                 ) {
                     Label("Из галереи", systemImage: "photo.on.rectangle")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.pill(.secondary, size: .medium))
             }
             .disabled(!photoImport.canAddMore || photoImport.isRecognizing)
             if photoImport.isPreparing {
-                ProgressView("Готовлю фото…")
+                WorkingRow(text: "Готовлю фото…")
             }
-        } header: {
-            Text("Фото тетради, учебника или доски")
-        } footer: {
             Text("До \(PolishAI.maxPhotos) фото за раз. «Только выделенное» — подчёркнутые, обведённые, выделенные маркером слова и слова на полях.")
-        }
+                .font(.ui(.footnote))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-        Section {
             if photoImport.isRecognizing {
-                HStack(spacing: 12) {
-                    ProgressView()
-                    Text("Распознаю слова…")
-                    Spacer()
-                    Button("Стоп") { photoImport.stop() }
-                        .buttonStyle(.bordered)
-                }
+                WorkingRow(text: "Распознаю слова…") { photoImport.stop() }
             } else {
                 Button {
                     photoImport.recognize(mode: settings.photoMode, ai: ai, existingKeys: cards.dedupKeys) { model in
@@ -281,6 +283,7 @@ struct AddWordsView: View {
                     Label("Распознать", systemImage: "text.viewfinder")
                         .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.pill(.primary))
                 .disabled(photoImport.photos.isEmpty || !ai.hasKey)
             }
             if let message = photoImport.message {
@@ -298,7 +301,7 @@ struct AddWordsView: View {
                             .resizable()
                             .scaledToFill()
                             .frame(width: 84, height: 112)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous))
                             .overlay(alignment: .topTrailing) {
                                 Button {
                                     photoImport.remove(at: index)

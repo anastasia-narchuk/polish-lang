@@ -11,5 +11,7 @@ extension View {
             .environment(app.readings)
             .environment(app.reading)
             .environment(app.toasts)
+            .font(.ui(.body))
+            .tint(Theme.ink)
     }
 }

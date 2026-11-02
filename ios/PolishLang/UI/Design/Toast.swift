@@ -10,12 +10,13 @@ struct ToastOverlay: ViewModifier {
             .overlay(alignment: .bottom) {
                 if let message = toasts.message {
                     Text(message)
-                        .font(.callout.weight(.medium))
+                        .font(.ui(.callout, weight: .semibold))
+                        .foregroundStyle(Theme.background)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 11)
-                        .background(.regularMaterial, in: Capsule())
-                        .shadow(color: Color.black.opacity(0.15), radius: 10, y: 3)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(Theme.text, in: Capsule())
+                        .shadow(color: Color.black.opacity(0.18), radius: 16, y: 6)
                         .padding(.horizontal, 24)
                         .padding(.bottom, bottomPadding)
                         .transition(.move(edge: .bottom).combined(with: .opacity))

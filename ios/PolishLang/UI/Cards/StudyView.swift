@@ -25,7 +25,7 @@ struct StudyView: View {
                 }
                 if !model.isFinished {
                     ToolbarItem(placement: .principal) {
-                        ProgressView(value: model.progress)
+                        ProgressBar(value: model.progress)
                             .frame(width: 140)
                             .accessibilityLabel("Пройдено карточек")
                     }
@@ -38,21 +38,22 @@ struct StudyView: View {
 
     private func cardView(_ card: Flashcard) -> some View {
         ScrollView {
-            VStack(spacing: 18) {
-                VStack(spacing: 8) {
+            VStack(spacing: 20) {
+                VStack(spacing: 10) {
                     Text(card.ru)
-                        .font(.title2.weight(.semibold))
+                        .heading(.title)
+                        .foregroundStyle(Theme.studyFeature.accent)
                         .multilineTextAlignment(.center)
                     if !card.form.isEmpty {
                         Text(card.form)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(.ui(.subheadline))
+                            .foregroundStyle(Color.white.opacity(0.75))
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 28)
-                .padding(.horizontal, 16)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .frame(maxWidth: .infinity, minHeight: 120)
+                .padding(.vertical, 32)
+                .padding(.horizontal, Theme.Space.card)
+                .background(Theme.studyFeature.background, in: RoundedRectangle(cornerRadius: Theme.Radius.hero, style: .continuous))
 
                 if let base = model.baseHint {
                     hintRow("Начальная форма", base)
@@ -69,9 +70,13 @@ struct StudyView: View {
                         focusTrigger: model.step,
                         onSubmit: submitOrNext
                     )
-                    .frame(height: 48)
-                    .padding(.horizontal, 12)
-                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .frame(height: 56)
+                    .padding(.horizontal, 16)
+                    .background(Theme.background, in: RoundedRectangle(cornerRadius: Theme.Radius.field, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Theme.Radius.field, style: .continuous)
+                            .strokeBorder(model.stage == .answering ? Theme.ink : Theme.border, lineWidth: model.stage == .answering ? 2 : 1)
+                    }
                     if model.stage == .answering {
                         PolishLettersBar { letter in
                             model.answer += letter
@@ -85,22 +90,24 @@ struct StudyView: View {
 
                 buttons
             }
-            .padding(20)
+            .padding(Theme.Space.screen)
             .frame(maxWidth: 560)
             .frame(maxWidth: .infinity)
         }
-        .background(Theme.background)
+        .screenBackground()
     }
 
     private func hintRow(_ title: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
             Spacer()
             Text(value)
-                .font(Theme.polish(.title3, weight: .semibold))
+                .font(.ui(.title3, weight: .semibold))
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous))
     }
 
     private func result(_ check: AnswerCheck, card: Flashcard) -> some View {
@@ -110,32 +117,32 @@ struct StudyView: View {
                 DiffView(diff: check.diff)
             }
             Text(card.pl)
-                .font(Theme.polish(.title, weight: .semibold))
+                .heading(.title)
                 .textSelection(.enabled)
             if let line = card.formLine {
                 Text(line)
-                    .font(Theme.polish(.title3))
-                    .foregroundStyle(.secondary)
+                    .font(.ui(.title3, weight: .regular))
+                    .foregroundStyle(Theme.textSecondary)
             }
             if !card.note.isEmpty {
                 Text(card.note)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.ui(.callout))
+                    .foregroundStyle(Theme.textSecondary)
             }
             if let example = card.example, !example.isEmpty {
                 Text(example)
-                    .font(Theme.polish(.callout))
+                    .font(.ui(.callout))
                     .italic()
             }
             if check.verdict != .correct, !check.errorTypes.isEmpty, !check.given.isEmpty {
-                Text("Ошибка: " + check.errorTypes.map(\.title).joined(separator: ", "))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    ForEach(check.errorTypes.map(\.title), id: \.self) { title in
+                        Tag(text: title, style: .negative)
+                    }
+                }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .cardBackground()
     }
 
     @ViewBuilder
@@ -143,16 +150,25 @@ struct StudyView: View {
         switch verdict {
         case .correct:
             Label(model.hintLevel > 0 ? "Верно, с подсказкой" : "Верно", systemImage: "checkmark.circle.fill")
-                .font(.headline)
-                .foregroundStyle(Color.green)
+                .font(.ui(.headline))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Theme.positiveFill, in: Capsule())
+                .foregroundStyle(Theme.positive)
         case .almost:
             Label("Почти", systemImage: "circle.lefthalf.filled")
-                .font(.headline)
-                .foregroundStyle(Color.orange)
+                .font(.ui(.headline))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Theme.warningFill, in: Capsule())
+                .foregroundStyle(Theme.warning)
         case .wrong:
             Label(model.revealed ? "Ответ" : "Неверно", systemImage: "xmark.circle.fill")
-                .font(.headline)
-                .foregroundStyle(Color.red)
+                .font(.ui(.headline))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Theme.negativeFill, in: Capsule())
+                .foregroundStyle(Theme.negative)
         }
     }
 
@@ -175,20 +191,19 @@ struct StudyView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.pill(.secondary))
                 Button {
                     submit(reveal: false)
                 } label: {
                     Text("Проверить")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.pill(.primary))
                 .disabled(model.answer.trimmed.isEmpty)
                 Text("Подсказка снижает оценку карточки.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.ui(.footnote))
+                    .foregroundStyle(Theme.textSecondary)
             }
-            .controlSize(.large)
         } else {
             Button {
                 model.next()
@@ -196,8 +211,7 @@ struct StudyView: View {
                 Text("Дальше")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(.pill(.primary))
         }
     }
 
@@ -221,35 +235,41 @@ struct StudyView: View {
 
     private var summary: some View {
         let result = model.summary
-        return VStack(spacing: 20) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(Color.green)
+        return VStack(spacing: 24) {
+            IconCircle(systemName: "checkmark", size: 88, tint: Theme.onBright, fill: Theme.bright)
             Text("Готово")
-                .font(.title.bold())
-            HStack(spacing: 28) {
-                stat("Верно", result.correct, .green)
-                stat("Почти", result.almost, .orange)
-                stat("С ошибкой", result.wrong, .red)
+                .heading(.largeTitle)
+            HStack(spacing: 12) {
+                stat("Верно", result.correct, Theme.positive, Theme.positiveFill)
+                stat("Почти", result.almost, Theme.warning, Theme.warningFill)
+                stat("С ошибкой", result.wrong, Theme.negative, Theme.negativeFill)
             }
-            Button("Закрыть") { dismiss() }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+            Button {
+                dismiss()
+            } label: {
+                Text("Закрыть")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.pill(.primary))
         }
-        .padding()
+        .padding(Theme.Space.screen)
+        .frame(maxWidth: 480)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.background)
+        .screenBackground()
     }
 
-    private func stat(_ title: String, _ value: Int, _ color: Color) -> some View {
+    private func stat(_ title: String, _ value: Int, _ color: Color, _ fill: Color) -> some View {
         VStack(spacing: 4) {
             Text("\(value)")
-                .font(.title.weight(.semibold))
+                .heading(.title)
                 .foregroundStyle(color)
             Text(title)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(.ui(.footnote, weight: .medium))
+                .foregroundStyle(color)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(fill, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
     }
 }
 
@@ -262,14 +282,14 @@ struct DiffView: View {
             row("Ответ", given)
             row("Нужно", expected)
         }
-        .font(Theme.polish(.title3))
+        .font(.ui(.title3, weight: .medium))
     }
 
     private func row(_ title: String, _ text: Text) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.ui(.caption))
+                .foregroundStyle(Theme.textSecondary)
                 .frame(width: 52, alignment: .leading)
             text
         }
@@ -281,11 +301,11 @@ struct DiffView: View {
             case .same(let letter):
                 return text + Text(String(letter))
             case .substitute(_, let typed):
-                return text + Text(String(typed)).foregroundStyle(Color.red).underline()
+                return text + Text(String(typed)).foregroundStyle(Theme.negative).underline()
             case .missing:
-                return text + Text(verbatim: "_").foregroundStyle(Color.red)
+                return text + Text(verbatim: "_").foregroundStyle(Theme.negative)
             case .extra(let typed):
-                return text + Text(String(typed)).foregroundStyle(Color.red).strikethrough()
+                return text + Text(String(typed)).foregroundStyle(Theme.negative).strikethrough()
             }
         }
     }
@@ -296,7 +316,7 @@ struct DiffView: View {
             case .same(let letter):
                 return text + Text(String(letter))
             case .substitute(let wanted, _), .missing(let wanted):
-                return text + Text(String(wanted)).foregroundStyle(Color.green).bold()
+                return text + Text(String(wanted)).foregroundStyle(Theme.positive).bold()
             case .extra:
                 return text
             }

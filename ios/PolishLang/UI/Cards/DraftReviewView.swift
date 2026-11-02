@@ -13,23 +13,32 @@ struct DraftReviewView: View {
     @State private var openedPhoto: PhotoPage?
 
     var body: some View {
-        List {
-            if !model.photos.isEmpty {
-                Section {
-                    PhotoStrip(photos: model.photos) { index in
-                        openedPhoto = PhotoPage(index: index)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if !model.photos.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        PhotoStrip(photos: model.photos) { index in
+                            openedPhoto = PhotoPage(index: index)
+                        }
+                        Text("Сверь слова с фото: нажми на снимок, чтобы увеличить.")
+                            .font(.ui(.footnote))
+                            .foregroundStyle(Theme.textSecondary)
                     }
-                } footer: {
-                    Text("Сверь слова с фото: нажми на снимок, чтобы увеличить.")
                 }
-            }
-            statusSection
-            Section {
+                statusSection
                 ForEach($model.drafts) { $draft in
                     DraftRow(draft: $draft, isWaiting: model.isWorking && !draft.answered && draft.needsAI(wantBase: model.wantBase))
+                        .cardBackground(padding: 20)
                 }
             }
+            .padding(.horizontal, Theme.Space.screen)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
+            .frame(maxWidth: Theme.maxContentWidth)
+            .frame(maxWidth: .infinity)
         }
+        .screenBackground()
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Проверка")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -53,17 +62,14 @@ struct DraftReviewView: View {
     @ViewBuilder
     private var statusSection: some View {
         if model.duplicates > 0 || model.isWorking || model.failure != nil {
-            Section {
+            VStack(alignment: .leading, spacing: 12) {
                 if model.duplicates > 0 {
                     Label("Пропущено повторов: \(model.duplicates)", systemImage: "arrow.uturn.right")
-                        .foregroundStyle(.secondary)
+                        .font(.ui(.callout, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 if model.isWorking {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text("AI подбирает перевод…")
-                            .foregroundStyle(.secondary)
-                    }
+                    WorkingRow(text: "AI подбирает перевод…")
                 }
                 if let failure = model.failure {
                     failureView(failure)
@@ -90,6 +96,7 @@ struct DraftReviewView: View {
         Button("Ещё раз") {
             Task { await model.enrich(using: ai) }
         }
+        .buttonStyle(.pill(.secondary, size: .medium))
         .disabled(model.isWorking)
     }
 
@@ -114,48 +121,47 @@ private struct DraftRow: View {
     var isWaiting: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
                 Button {
                     draft.include.toggle()
                 } label: {
-                    Image(systemName: draft.include ? "checkmark.circle.fill" : "circle")
-                        .font(.title3)
-                        .foregroundStyle(draft.include ? Color.accentColor : Color.secondary)
+                    Image(systemName: draft.include ? "checkmark" : "plus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(draft.include ? Theme.onBright : Theme.ink)
+                        .frame(width: 36, height: 36)
+                        .background(draft.include ? Theme.bright : Theme.fill, in: Circle())
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.plain)
                 .accessibilityLabel(draft.include ? "Добавить: да" : "Добавить: нет")
                 Text(draft.pl)
-                    .font(Theme.polish(.title2, weight: .semibold))
+                    .heading(.title2)
                     .textSelection(.enabled)
                 Spacer(minLength: 0)
                 if isWaiting {
                     ProgressView()
+                        .tint(Theme.ink)
                 }
             }
 
             if !badges.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(badges, id: \.self) { badge in
-                        Text(badge)
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.15), in: Capsule())
-                            .foregroundStyle(Color.orange)
+                        Tag(text: badge, style: .warning)
                     }
                 }
             }
 
             if !draft.fix.isEmpty {
                 HStack(spacing: 8) {
-                    (Text("Похоже, пишется ") + Text(draft.fix).bold())
-                        .font(.callout)
+                    (Text("Похоже, пишется ") + Text(draft.fix).fontWeight(.semibold))
+                        .font(.ui(.callout))
                     Spacer(minLength: 0)
                     Button("Исправить") { draft.applyFix() }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        .buttonStyle(.pill(.primary, size: .small))
                 }
+                .padding(12)
+                .background(Theme.warningFill, in: RoundedRectangle(cornerRadius: Theme.Radius.field, style: .continuous))
             }
 
             LabeledTextField(title: "Перевод", text: $draft.ru, polish: false)
@@ -166,18 +172,17 @@ private struct DraftRow: View {
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                 }
-                .font(.footnote)
-                .foregroundStyle(Color.orange)
+                .font(.ui(.footnote))
+                .foregroundStyle(Theme.warning)
             }
             LabeledTextField(title: "Пометка о форме", text: $draft.note)
             let grammar = [draft.form, draft.alternation].filter { !$0.isEmpty }.joined(separator: " · ")
             if !grammar.isEmpty {
                 Text(grammar)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.ui(.caption))
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
-        .padding(.vertical, 6)
         .opacity(draft.include ? 1 : 0.6)
     }
 

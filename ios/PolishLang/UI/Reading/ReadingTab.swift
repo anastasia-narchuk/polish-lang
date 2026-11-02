@@ -31,21 +31,24 @@ struct ReadingSetupView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                topicSection
-                levelSection
+            VStack(alignment: .leading, spacing: Theme.Space.section) {
+                FeatureCard(feature: Theme.readingFeature, title: "Новый текст") {
+                    topicSection
+                    levelSection
+                    generateSection
+                }
                 advancedSection
-                generateSection
                 if !readings.texts.isEmpty {
                     historySection
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .frame(maxWidth: 700)
+            .padding(.horizontal, Theme.Space.screen)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
+            .frame(maxWidth: Theme.maxContentWidth)
             .frame(maxWidth: .infinity)
         }
-        .background(Theme.background)
+        .screenBackground()
         .scrollDismissesKeyboard(.interactively)
     }
 
@@ -53,14 +56,22 @@ struct ReadingSetupView: View {
         @Bindable var session = session
         return VStack(alignment: .leading, spacing: 12) {
             Text("Тема")
-                .font(.headline)
+                .font(.ui(.footnote, weight: .semibold))
+                .foregroundStyle(Theme.readingFeature.accent)
             TextField("Например: wizyta u lekarza или «поиск квартиры»", text: $session.topic)
-                .font(Theme.polish(.title3))
+                .font(.ui(.title3, weight: .medium))
+                .foregroundStyle(Color.white)
                 .submitLabel(.go)
                 .focused($topicFocused)
                 .onSubmit(generate)
-                .padding(12)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .frame(minHeight: 56)
+                .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous)
+                        .strokeBorder(topicFocused ? Theme.readingFeature.accent : Color.clear, lineWidth: 2)
+                }
             FlowLayout(spacing: 8, lineSpacing: 8) {
                 ForEach(ReadingTopics.quick, id: \.self) { topic in
                     Button(topic) {
@@ -75,50 +86,16 @@ struct ReadingSetupView: View {
 
     private var levelSection: some View {
         @Bindable var settings = settings
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 12) {
             Text("Уровень")
-                .font(.headline)
-            Picker("Уровень", selection: $settings.readingLevel) {
-                ForEach(CEFRLevel.allCases) { level in
-                    Text(level.rawValue).tag(level)
-                }
-            }
-            .pickerStyle(.segmented)
+                .font(.ui(.footnote, weight: .semibold))
+                .foregroundStyle(Theme.readingFeature.accent)
+            SegmentedPills(items: CEFRLevel.allCases, title: { $0.rawValue }, selection: $settings.readingLevel)
             Text(settings.readingLevel.summary)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(.ui(.footnote))
+                .foregroundStyle(Color.white.opacity(0.75))
+                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var advancedSection: some View {
-        @Bindable var session = session
-        return DisclosureGroup(isExpanded: $showAdvanced) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text("Тип текста")
-                    Spacer()
-                    Picker("Тип текста", selection: $session.kind) {
-                        ForEach(TextKind.allCases) { kind in
-                            Text(kind.title).tag(kind)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
-                Toggle("Используй мои слова", isOn: $session.useMyWords)
-                    .disabled(cards.cards.isEmpty)
-                Text(cards.cards.isEmpty
-                    ? "Когда появятся карточки, в текст можно будет вплести 5–8 твоих слов."
-                    : "В текст попадут 5–8 слов из карточек: сначала недавние и те, в которых были ошибки.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 12)
-        } label: {
-            Text("Дополнительно")
-                .font(.headline)
-                .foregroundStyle(Color.primary)
-        }
-        .cardBackground()
     }
 
     @ViewBuilder
@@ -126,19 +103,13 @@ struct ReadingSetupView: View {
         VStack(alignment: .leading, spacing: 12) {
             switch session.phase {
             case .generating(let level):
-                HStack(spacing: 12) {
-                    ProgressView()
-                    Text("Пишу текст уровня \(level.rawValue)…")
-                    Spacer()
-                    Button("Стоп", role: .cancel) { session.stop() }
-                        .buttonStyle(.bordered)
-                }
-                .cardBackground()
+                WorkingRow(text: "Пишу текст уровня \(level.rawValue)…") { session.stop() }
+                    .padding(.vertical, 4)
             case .failed(let message, let canRetry):
                 Banner(text: message, style: .error)
                 if canRetry {
                     Button("Ещё раз") { session.retry() }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.pill(.secondary, size: .medium))
                 }
                 generateButton(enabled: canGenerate)
             case .cooldown(let until):
@@ -157,11 +128,11 @@ struct ReadingSetupView: View {
             if !ai.hasKey {
                 Banner(text: "Генерация недоступна: добавь API-ключ Claude в настройках. История и сохранённые тексты читаются как обычно.", style: .info)
                 Button("Открыть настройки") { app.tab = .settings }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.pill(.inverse, size: .medium))
             } else if session.topic.trimmed.isEmpty {
                 Text("Введи тему или выбери чип")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.ui(.footnote))
+                    .foregroundStyle(Color.white.opacity(0.75))
             }
         }
     }
@@ -169,12 +140,9 @@ struct ReadingSetupView: View {
     private func generateButton(enabled: Bool) -> some View {
         Button(action: generate) {
             Label("Сгенерировать", systemImage: "sparkles")
-                .font(.headline)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(.pill(.primary))
         .disabled(!enabled)
     }
 
@@ -188,20 +156,73 @@ struct ReadingSetupView: View {
         session.generate()
     }
 
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("История")
-                    .font(.headline)
-                Spacer()
-                Button("Все тексты") { session.path.append(.history) }
+    /// Wise-style accordion row: a bold title and a round "+" on the right.
+    private var advancedSection: some View {
+        @Bindable var session = session
+        return VStack(alignment: .leading, spacing: 0) {
+            Hairline()
+            Button {
+                withAnimation(.snappy(duration: 0.25)) { showAdvanced.toggle() }
+            } label: {
+                HStack {
+                    Text("Тип текста и мои слова")
+                        .font(.ui(.headline))
+                        .foregroundStyle(Theme.text)
+                    Spacer()
+                    Image(systemName: showAdvanced ? "minus" : "plus")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: 48, height: 48)
+                        .background(Theme.fill, in: Circle())
+                }
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
             }
-            ForEach(readings.texts.prefix(3)) { text in
+            .buttonStyle(.plain)
+            .accessibilityValue(showAdvanced ? "открыто" : "закрыто")
+            if showAdvanced {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Text("Тип текста")
+                        Spacer()
+                        Picker("Тип текста", selection: $session.kind) {
+                            ForEach(TextKind.allCases) { kind in
+                                Text(kind.title).tag(kind)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    Toggle("Используй мои слова", isOn: $session.useMyWords)
+                        .disabled(cards.cards.isEmpty)
+                    Text(cards.cards.isEmpty
+                        ? "Когда появятся карточки, в текст можно будет вплести 5–8 твоих слов."
+                        : "В текст попадут 5–8 слов из карточек: сначала недавние и те, в которых были ошибки.")
+                        .font(.ui(.footnote))
+                        .foregroundStyle(Theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.bottom, 20)
+                .transition(.opacity)
+            }
+            Hairline()
+        }
+    }
+
+    private var historySection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SectionHeader(title: "История") {
+                Button("Все тексты") { session.path.append(.history) }
+                    .buttonStyle(.pill(.secondary, size: .small))
+            }
+            .padding(.bottom, 8)
+            ForEach(Array(readings.texts.prefix(3).enumerated()), id: \.element.id) { index, text in
+                if index > 0 {
+                    Hairline()
+                }
                 Button {
                     session.open(text)
                 } label: {
                     HistoryRow(text: text)
-                        .cardBackground()
                 }
                 .buttonStyle(.plain)
             }
@@ -213,24 +234,27 @@ struct HistoryRow: View {
     let text: ReadingText
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline) {
+        HStack(spacing: 16) {
+            IconCircle(systemName: "doc.text")
+            VStack(alignment: .leading, spacing: 2) {
                 Text(text.title)
-                    .font(Theme.polish(.headline))
+                    .font(.ui(.headline))
+                    .foregroundStyle(Theme.text)
                     .lineLimit(2)
-                Spacer(minLength: 8)
-                LevelBadge(level: text.level)
+                HStack(spacing: 6) {
+                    Text(text.topic)
+                    Text("·")
+                    Text(text.created, format: .dateTime.day().month().year())
+                }
+                .font(.ui(.subheadline))
+                .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1)
             }
-            HStack(spacing: 6) {
-                Text(text.topic)
-                Text("·")
-                Text(text.created, format: .dateTime.day().month().year())
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
+            Spacer(minLength: 8)
+            LevelBadge(level: text.level)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
         .contentShape(Rectangle())
     }
 }
@@ -249,6 +273,9 @@ struct ReadingHistoryView: View {
                     HistoryRow(text: text)
                 }
                 .buttonStyle(.plain)
+                .listRowBackground(Theme.background)
+                .listRowSeparatorTint(Theme.line)
+                .listRowInsets(EdgeInsets(top: 0, leading: Theme.Space.screen, bottom: 0, trailing: Theme.Space.screen))
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         readings.delete(id: text.id)
@@ -258,14 +285,13 @@ struct ReadingHistoryView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .screenBackground()
         .navigationTitle("История")
         .overlay {
             if readings.texts.isEmpty {
-                ContentUnavailableView(
-                    "Пока пусто",
-                    systemImage: "clock.arrow.circlepath",
-                    description: Text("Сохранённые тексты появятся здесь.")
-                )
+                EmptyState(icon: "clock.arrow.circlepath", title: "Пока пусто", text: "Сохранённые тексты появятся здесь.")
             }
         }
     }

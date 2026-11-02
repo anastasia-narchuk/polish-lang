@@ -13,40 +13,37 @@ struct TranslationPanel: View {
         VStack(spacing: 0) {
             HStack {
                 Text("Перевод")
-                    .font(.headline)
+                    .heading(.title3)
                 Spacer()
                 Button("Готово") { model.panelPresented = false }
-                    .fontWeight(.semibold)
+                    .buttonStyle(.pill(.secondary, size: .small))
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
+            .padding(.horizontal, Theme.Space.card)
+            .padding(.top, 20)
             .padding(.bottom, 4)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if let selection = model.selection {
                         Text(selection.text)
-                            .font(Theme.polish(.title, weight: .semibold))
+                            .heading(.title)
+                            .foregroundStyle(Theme.text)
                             .textSelection(.enabled)
                             .fixedSize(horizontal: false, vertical: true)
                         content(for: selection)
                     }
                 }
-                .padding(20)
+                .padding(Theme.Space.card)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .background(Theme.background)
+        .screenBackground()
     }
 
     @ViewBuilder
     private func content(for selection: ReaderSelection) -> some View {
         switch model.translation {
         case .idle, .loading:
-            HStack(spacing: 10) {
-                ProgressView()
-                Text("Перевожу…")
-                    .foregroundStyle(.secondary)
-            }
+            WorkingRow(text: "Перевожу…")
         case .failed(let message, let retryAfter):
             Banner(text: message, style: .error)
             if ai.hasKey {
@@ -62,50 +59,68 @@ struct TranslationPanel: View {
     @ViewBuilder
     private func loaded(_ translation: WordTranslation, selection: ReaderSelection) -> some View {
         Text(translation.ru)
-            .font(.title3)
+            .font(.ui(.title3, weight: .regular))
+            .foregroundStyle(Theme.text)
             .textSelection(.enabled)
             .fixedSize(horizontal: false, vertical: true)
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             if !translation.base.isEmpty {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("начальная форма:")
-                        .foregroundStyle(.secondary)
-                    Text(translation.base)
-                        .font(Theme.polish(.body, weight: .semibold))
-                    if !translation.alternation.isEmpty {
-                        Text("(" + translation.alternation + ")")
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                ValueRow(
+                    title: "Начальная форма",
+                    value: translation.alternation.isEmpty ? translation.base : translation.base + " (" + translation.alternation + ")"
+                )
             }
             let grammar = [translation.pos, translation.form].filter { !$0.isEmpty }.joined(separator: " · ")
             if !grammar.isEmpty {
-                Text(grammar)
-                    .foregroundStyle(.secondary)
+                if !translation.base.isEmpty { Hairline() }
+                ValueRow(title: "Форма", value: grammar)
             }
         }
-        .font(.callout)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous))
 
         if !translation.note.isEmpty {
             Banner(text: translation.note, style: .info)
         }
 
         if !translation.sentenceRu.isEmpty {
-            DisclosureGroup("Перевод предложения", isExpanded: $showSentence) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(selection.sentence)
-                        .font(Theme.polish(.callout))
-                        .foregroundStyle(.secondary)
-                    Text(translation.sentenceRu)
-                        .font(.callout)
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) { showSentence.toggle() }
+                } label: {
+                    HStack {
+                        Text("Перевод предложения")
+                            .font(.ui(.headline))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                        Image(systemName: showSentence ? "minus" : "plus")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Theme.ink)
+                            .frame(width: 40, height: 40)
+                            .background(Theme.fill, in: Circle())
+                    }
+                    .contentShape(Rectangle())
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 6)
+                .buttonStyle(.plain)
+                .accessibilityValue(showSentence ? "открыто" : "закрыто")
+                if showSentence {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(selection.sentence)
+                            .font(.ui(.callout))
+                            .foregroundStyle(Theme.textSecondary)
+                        Text(translation.sentenceRu)
+                            .font(.ui(.callout))
+                            .foregroundStyle(Theme.text)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 8)
+                }
             }
         }
 
-        Divider()
+        Hairline()
         addToCards(translation)
     }
 
@@ -115,9 +130,10 @@ struct TranslationPanel: View {
             Toggle(isOn: $model.saveBaseForm) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Сохранить начальную форму вместо этой")
+                        .font(.ui(.body))
                     if model.saveBaseForm {
                         baseFormStatus(translation)
-                            .font(.footnote)
+                            .font(.ui(.footnote))
                     }
                 }
             }
@@ -135,14 +151,13 @@ struct TranslationPanel: View {
                   systemImage: alreadySaved ? "checkmark" : "plus.rectangle.on.rectangle")
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(.pill(.primary))
         .disabled(candidate == nil || alreadySaved)
 
         if let candidate {
             Text("В карточку: " + candidate.pl + " — " + candidate.ru)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(.ui(.footnote))
+                .foregroundStyle(Theme.textSecondary)
         }
     }
 
@@ -151,13 +166,13 @@ struct TranslationPanel: View {
         switch model.baseForm {
         case .idle, .loading:
             Text("Перевожу начальную форму…")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
         case .loaded(let base):
             Text(translation.base + " — " + base.ru)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
         case .failed(let message):
             Text(message)
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.negative)
         }
     }
 }

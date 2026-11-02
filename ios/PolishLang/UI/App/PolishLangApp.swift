@@ -4,6 +4,10 @@ import SwiftUI
 struct PolishLangApp: App {
     @State private var model = PolishLangApp.makeModel()
 
+    init() {
+        Theme.applyAppearance()
+    }
+
     var body: some Scene {
         WindowGroup {
             root

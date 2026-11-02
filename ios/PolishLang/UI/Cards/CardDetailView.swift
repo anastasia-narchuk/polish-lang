@@ -17,62 +17,73 @@ struct CardDetailView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                Text(draft.pl)
-                    .font(Theme.polish(.largeTitle, weight: .semibold))
-                    .textSelection(.enabled)
-                if let line = draft.formLine {
-                    Text(line)
-                        .font(Theme.polish(.title3))
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Section("Перевод") {
-                TextField("Перевод", text: $draft.ru, axis: .vertical)
-            }
-
-            Section("Форма") {
-                LabeledTextField(title: "Начальная форма", text: $draft.base)
-                LabeledTextField(title: "Грамматическая форма", text: $draft.form)
-                LabeledTextField(title: "Чередование", text: $draft.alternation)
-                LabeledTextField(title: "Пометка", text: $draft.note)
-            }
-
-            if let example = draft.example, !example.isEmpty {
-                Section("Пример из текста") {
-                    Text(example)
-                        .font(Theme.polish(.body))
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Space.section) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(draft.pl)
+                        .heading(.largeTitle)
                         .textSelection(.enabled)
-                    if let exampleRu = draft.exampleRu, !exampleRu.isEmpty {
-                        Text(exampleRu)
-                            .foregroundStyle(.secondary)
+                    if let line = draft.formLine {
+                        Text(line)
+                            .font(.ui(.title3, weight: .regular))
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
-            }
 
-            if !photos.isEmpty {
-                Section("Фото") {
-                    PhotoStrip(photos: photos) { index in
-                        openedPhoto = PhotoPage(index: index)
+                VStack(alignment: .leading, spacing: 16) {
+                    LabeledTextField(title: "Перевод", text: $draft.ru, polish: false)
+                    LabeledTextField(title: "Начальная форма", text: $draft.base)
+                    LabeledTextField(title: "Грамматическая форма", text: $draft.form)
+                    LabeledTextField(title: "Чередование", text: $draft.alternation)
+                    LabeledTextField(title: "Пометка", text: $draft.note)
+                }
+
+                if let example = draft.example, !example.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Пример из текста")
+                            .font(.ui(.footnote, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                        Text(example)
+                            .font(.ui(.body))
+                            .textSelection(.enabled)
+                        if let exampleRu = draft.exampleRu, !exampleRu.isEmpty {
+                            Text(exampleRu)
+                                .font(.ui(.callout))
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                    }
+                    .cardBackground()
+                }
+
+                if !photos.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionHeader("Фото")
+                        PhotoStrip(photos: photos) { index in
+                            openedPhoto = PhotoPage(index: index)
+                        }
                     }
                 }
-            }
 
-            Section("Повторение") {
-                LabeledContent("Уровень запоминания", value: "\(draft.box) из \(Leitner.maxBox)")
-                LabeledContent("Следующее повторение") {
-                    Text(draft.due, format: .dateTime.day().month().hour().minute())
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Повторение")
+                        .heading(.title3)
+                        .padding(.bottom, 12)
+                    VStack(alignment: .leading, spacing: 8) {
+                        ValueRow(title: "Уровень запоминания", value: "\(draft.box) из \(Leitner.maxBox)")
+                        ProgressBar(value: Double(draft.box) / Double(Leitner.maxBox))
+                            .padding(.bottom, 8)
+                    }
+                    Hairline()
+                    ValueRow(title: "Следующее повторение", value: draft.due.formatted(.dateTime.day().month().hour().minute()))
+                    Hairline()
+                    ValueRow(title: "Верно / с ошибкой", value: "\(draft.right) / \(draft.wrong)")
+                    Hairline()
+                    ValueRow(title: "Добавлена", value: draft.created.formatted(.dateTime.day().month().year()))
+                    Hairline()
+                    ValueRow(title: "Источник", value: draft.source.title)
                 }
-                LabeledContent("Верно / с ошибкой", value: "\(draft.right) / \(draft.wrong)")
-                LabeledContent("Добавлена") {
-                    Text(draft.created, format: .dateTime.day().month().year())
-                }
-                LabeledContent("Источник", value: draft.source.title)
-            }
+                .cardBackground(radius: Theme.Radius.hero)
 
-            Section {
                 Button(role: .destructive) {
                     if deleteArmed {
                         app.deleteCards(ids: [draft.id])
@@ -84,8 +95,16 @@ struct CardDetailView: View {
                     Text(deleteArmed ? "Точно удалить?" : "Удалить карточку")
                         .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.pill(.destructive))
             }
+            .padding(.horizontal, Theme.Space.screen)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
+            .frame(maxWidth: Theme.maxContentWidth)
+            .frame(maxWidth: .infinity)
         }
+        .screenBackground()
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Карточка")
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear {

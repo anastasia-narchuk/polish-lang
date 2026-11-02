@@ -9,11 +9,8 @@ struct ReaderScreen: View {
             ReaderView(text: text)
                 .id(text.id)
         } else {
-            ContentUnavailableView(
-                "Текст не выбран",
-                systemImage: "doc.text",
-                description: Text("Сгенерируй текст или открой его из истории.")
-            )
+            EmptyState(icon: "doc.text", title: "Текст не выбран", text: "Сгенерируй текст или открой его из истории.")
+                .screenBackground()
         }
     }
 }
@@ -41,18 +38,23 @@ struct ReaderView: View {
                     legend
                     actions
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .padding(.horizontal, Theme.Space.screen)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
                 .frame(maxWidth: Theme.readerWidth, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
             if showsSidePanel {
-                Divider()
+                Rectangle()
+                    .fill(Theme.line)
+                    .frame(width: 1)
+                    .ignoresSafeArea()
                 TranslationPanel(model: model)
                     .frame(width: 360)
                     .transition(.move(edge: .trailing))
             }
         }
+        .screenBackground()
         .animation(.default, value: showsSidePanel)
         .environment(\.openURL, OpenURLAction { url in
             if let tokenID = ReaderLink.tokenID(from: url) {
@@ -128,13 +130,14 @@ struct ReaderView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(model.text.title)
-                .font(Theme.polish(.title, weight: .semibold))
+                .heading(.title)
+                .foregroundStyle(Theme.text)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
                 LevelBadge(level: model.text.level)
                 Text(meta)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.ui(.subheadline))
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
     }
@@ -155,12 +158,13 @@ struct ReaderView: View {
         if case .failed(let message, let canRetry) = session.phase {
             VStack(alignment: .leading, spacing: 8) {
                 Banner(text: message, style: .error)
-                HStack {
+                HStack(spacing: 8) {
                     if canRetry {
                         Button("Ещё раз") { session.retry() }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.pill(.secondary, size: .medium))
                     }
                     Button("Скрыть") { session.clearFailure() }
+                        .buttonStyle(.pill(.tertiary, size: .medium))
                 }
             }
         }
@@ -220,8 +224,11 @@ struct ReaderView: View {
                 Text("Пунктиром подчёркнуты ключевые слова, жёлтым отмечены слова из твоих карточек.")
             }
         }
-        .font(.footnote)
-        .foregroundStyle(.secondary)
+        .font(.ui(.footnote))
+        .foregroundStyle(Theme.textSecondary)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous))
     }
 
     private var actions: some View {
@@ -257,8 +264,8 @@ struct ReaderView: View {
                 .disabled(session.isCurrentSaved || session.current?.id != model.text.id)
             }
         }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
+        .buttonStyle(.pill(.secondary))
+        .labelStyle(.titleAndIcon)
     }
 
     /// The same topic again, or at a neighbouring level; needs AI and no running generation.
@@ -277,22 +284,21 @@ struct ReaderView: View {
                         Label("Перевести фразу", systemImage: "character.book.closed")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.pill(.primary))
                     Button {
                         model.cancelPhrase()
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(CircleIconButtonStyle())
                     .accessibilityLabel("Сбросить фразу")
                 } else {
                     Text(model.phraseAnchor == nil ? "Нажми на первое слово фразы" : "Теперь — на последнее слово")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
+                        .font(.ui(.callout, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(maxWidth: .infinity, minHeight: 48)
                 }
             }
-            .controlSize(.large)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(.bar)
@@ -304,13 +310,14 @@ struct ReaderView: View {
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
-            VStack(spacing: 14) {
+            VStack(spacing: 16) {
                 ProgressView()
                     .controlSize(.large)
+                    .tint(Theme.ink)
                 Text("Пишу новый текст…")
-                    .font(.headline)
+                    .heading(.title3)
                 Button("Стоп", role: .cancel) { session.stop() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.pill(.secondary, size: .medium))
             }
         }
         .transition(.opacity)
