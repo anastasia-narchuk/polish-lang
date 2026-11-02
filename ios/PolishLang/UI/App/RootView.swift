@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The menu: reading, cards, writing (to come) and settings.
+/// The menu: reading, cards, writing and settings.
 struct RootView: View {
     @Environment(AppModel.self) private var app
 
@@ -13,7 +13,7 @@ struct RootView: View {
             CardsTab()
                 .tabItem { Label("Карточки", systemImage: "rectangle.on.rectangle.angled") }
                 .tag(AppModel.Tab.cards)
-            WritingPlaceholderView()
+            WritingTab()
                 .tabItem { Label("Письмо", systemImage: "square.and.pencil") }
                 .tag(AppModel.Tab.writing)
             SettingsView()

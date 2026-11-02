@@ -69,6 +69,16 @@ enum Theme {
     /// Dotted underline of key words.
     static let keywordLine = ink
 
+    // MARK: Writing
+
+    /// The squared notebook sheet of the writing field (TZ 3, section 11).
+    static let notebookPaper = Color(light: 0xFFFFFF, dark: 0x19181B)
+    static let notebookGrid = Color(light: 0x7FA3CC, dark: 0xFFFFFF, lightAlpha: 0.28, darkAlpha: 0.09)
+    static let notebookMargin = Color(light: 0xE2665A, dark: 0xB65A52, lightAlpha: 0.75, darkAlpha: 0.8)
+    /// The teacher's red pen for mistakes and green for fixes: not the raspberry of the interface.
+    static let mistakeInk = Color(light: 0xC62828, dark: 0xFF8A80)
+    static let fixInk = positive
+
     // MARK: Shapes and spacing
 
     enum Radius {

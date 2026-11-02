@@ -26,6 +26,7 @@ struct SettingsView: View {
                     apiGroup
                     readingGroup
                     cardsGroup
+                    writingGroup
                     advancedGroup
                     dataGroup
                     ValueRow(title: "Версия", value: appVersion)
@@ -136,6 +137,51 @@ struct SettingsView: View {
         }
     }
 
+    /// TZ 3, sections 2 and 10: numbers that are not confirmed; they apply to new tasks at once.
+    private var writingGroup: some View {
+        @Bindable var settings = settings
+        return group("Письмо", footer: "Число слов, баллы и время не подтверждены официально — сверь с пробным тестом: certyfikatpolski.pl → «Przykładowe testy». Изменения сразу действуют на новые задания.") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Уровень экзамена")
+                    .font(.ui(.headline))
+                SegmentedPills(items: ExamLevel.allCases, title: { $0.rawValue }, selection: $settings.writing.examLevel)
+            }
+            .padding(.vertical, 16)
+            Hairline()
+            stepperRow("B1, короткая форма", value: $settings.writing.wordsB1.short, range: 20...400, step: 10, unit: "слов")
+            Hairline()
+            stepperRow("B1, длинная форма", value: $settings.writing.wordsB1.long, range: 20...600, step: 10, unit: "слов")
+            Hairline()
+            stepperRow("B2, короткая форма", value: $settings.writing.wordsB2.short, range: 20...400, step: 10, unit: "слов")
+            Hairline()
+            stepperRow("B2, длинная форма", value: $settings.writing.wordsB2.long, range: 20...600, step: 10, unit: "слов")
+            Hairline()
+            stepperRow("Баллы за короткую форму", value: $settings.writing.points.short, range: 1...30, step: 1, unit: "из 30")
+            Hairline()
+            stepperRow("Баллы за длинную форму", value: $settings.writing.points.long, range: 1...30, step: 1, unit: "из 30")
+            Hairline()
+            stepperRow("Время на модуль B1", value: $settings.writing.minutesB1, range: 10...240, step: 5, unit: "мин")
+            Hairline()
+            stepperRow("Время на модуль B2", value: $settings.writing.minutesB2, range: 10...240, step: 5, unit: "мин")
+            Hairline()
+            toggleRow("Панель польских букв ą…ż", isOn: $settings.writing.lettersBar)
+        }
+    }
+
+    private func stepperRow(_ title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
+        Stepper(value: value, in: range, step: step) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.ui(.headline))
+                Text("\(value.wrappedValue) \(unit)")
+                    .font(.ui(.subheadline))
+                    .foregroundStyle(Theme.textSecondary)
+                    .monospacedDigit()
+            }
+        }
+        .frame(minHeight: 64)
+    }
+
     private var advancedGroup: some View {
         @Bindable var settings = settings
         return group("Для опытных", footer: "По умолчанию: Claude — \(AIConfiguration.defaultModel) и \(AIConfiguration.defaultBaseURL.absoluteString), Gemini — \(GeminiClient.defaultModel). Адрес Claude можно заменить на свой прокси, совместимый с Messages API. Резервная модель (только для Claude): если Claude откажется отвечать из-за правил безопасности, запрос повторит другая модель (бета-функция API).") {
@@ -157,12 +203,14 @@ struct SettingsView: View {
     }
 
     private var dataGroup: some View {
-        group("Данные", footer: "Всё хранится на устройстве. Экспорт — резервная копия карточек, текстов и ошибок.") {
+        group("Данные", footer: "Всё хранится на устройстве. Экспорт — резервная копия карточек, текстов, письменных работ и ошибок.") {
             ValueRow(title: "Карточек", value: "\(cards.cards.count)")
             Hairline()
             ValueRow(title: "Текстов в истории", value: "\(readings.texts.count)")
             Hairline()
             ValueRow(title: "Записей в банке ошибок", value: "\(mistakes.mistakes.count)")
+            Hairline()
+            ValueRow(title: "Проверенных текстов (письмо)", value: "\(writingTexts.texts.count)")
             Hairline()
             ShareLink(item: backup, preview: SharePreview("Резервная копия Po polsku")) {
                 Label("Экспорт в JSON", systemImage: "square.and.arrow.up")

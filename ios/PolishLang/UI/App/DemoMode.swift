@@ -9,7 +9,8 @@ import SwiftUI
 /// and for trying the app without a network or an API key.
 ///
 ///     -demo                    sample data in a temporary folder, fake AI
-///     -demo-screen <name>      setup, reader, panel, cards, add, review, study, settings, writing
+///     -demo-screen <name>      setup, reader, panel, cards, add, review, study, settings, writing,
+///                              workspace, feedback
 enum DemoMode {
     private static let arguments = ProcessInfo.processInfo.arguments
 
@@ -27,6 +28,19 @@ enum DemoMode {
         screen == "panel" ? "lekarza" : nil
     }
 
+    /// The paragraph typed on the "workspace" screen; "ł" is then typed into "byam" through the letters bar.
+    static var workspaceText: String? {
+        screen == "workspace" ? sampleParagraph : nil
+    }
+
+    static var workspaceInsertion: (letter: String, offset: Int)? {
+        guard screen == "workspace" else { return nil }
+        let location = (sampleParagraph as NSString).range(of: "byam").location
+        return location == NSNotFound ? nil : ("ł", location + 2)
+    }
+
+    static let sampleParagraph = "Cześć Kasiu! Mam dla ciebie nowinę: od poniedziałku pracuję w biurze blisko domu. Wczoraj byam na pierwszym spotkaniu i wszyscy byli mili. Poza tym mam elastyczne godziny pracy."
+
 
     @MainActor
     static func makeApp() -> AppModel {
@@ -40,13 +54,18 @@ enum DemoMode {
         for mistake in sampleMistakes() { app.mistakes.record(mistake) }
         app.readings.save(sampleText)
         app.reading.topic = "wizyta u lekarza"
+        app.writingTexts.save(sampleWritingText)
+        app.textErrors.record(sampleWritingText.result, source: "akapit")
         switch screen {
         case "cards":
             app.tab = .cards
         case "settings":
             app.tab = .settings
-        case "writing":
+        case "writing", "workspace":
             app.tab = .writing
+        case "feedback":
+            app.tab = .writing
+            app.writing.path = [.feedback(sampleWritingText.id)]
         default:
             break
         }
@@ -99,6 +118,24 @@ enum DemoMode {
         ]
     }
 
+    static let writingTaskJSON = #"{"task":{"form":"wiadomość do koleżanki","register":"nieformalny","polecenie":"Napisz wiadomość do koleżanki o swojej nowej pracy.","punkty":["Opisz, gdzie pracujesz.","Napisz, co ci się podoba.","Zaproponuj spotkanie."],"words":65,"ru":"Напиши подруге сообщение о новой работе: где работаешь, что нравится, предложи встретиться.","plan":[{"ru":"Приветствие и новость","phrases":["Cześć Kasiu!","Mam dla ciebie nowinę:"]},{"ru":"Работа и впечатления","phrases":["Od poniedziałku pracuję w…","Najbardziej podoba mi się…"]},{"ru":"Встреча и прощание","phrases":["Może spotkamy się w…?","Ściskam,"]}],"connectors":["poza tym","dlatego","jednak","na przykład"],"ideas":[{"ru":"милые коллеги","pl":"mili współpracownicy"},{"ru":"близко от дома","pl":"blisko domu"},{"ru":"гибкий график","pl":"elastyczne godziny pracy"},{"ru":"кофе в пятницу","pl":"kawa w piątek"},{"ru":"первая зарплата","pl":"pierwsza wypłata"}]}}"#
+
+    static let writingCheckJSON = #"{"errors":[{"fragment":"nowine","correction":"nowinę","type":"ortografia","rule_ru":"Вин. п. ед. ч. ж. р. оканчивается на -ę: nowinę."},{"fragment":"pracuje","correction":"pracuję","type":"gramatyka","rule_ru":"1-е лицо ед. ч.: (ja) pracuję, без ogonka это «он работает»."},{"fragment":"Szanowna Pani,","correction":"","type":"leksyka","rule_ru":"Официальное обращение не подходит к письму подруге."}],"points":[{"punkt":"Opisz, gdzie pracujesz.","status":"tak","quote":"od poniedziałku pracuje w biurze blisko domu"},{"punkt":"Napisz, co ci się podoba.","status":"częściowo","quote":"wszyscy byli mili"},{"punkt":"Zaproponuj spotkanie.","status":"tak","quote":"Może spotkamy się w sobotę?"}],"register":{"expected":"nieformalny","detected":"mieszany","consistent":false,"issues_ru":["«Szanowna Pani» — официальное обращение, а письмо подруге на «ty». Убери его."]},"scores":{"zadanie":4,"spojnosc":4,"gramatyka":3,"leksyka":4,"ortografia":3},"corrected_text":"Cześć Kasiu! Mam dla ciebie nowinę: od poniedziałku pracuję w biurze blisko domu. Wczoraj byłam na pierwszym spotkaniu i wszyscy byli mili. Poza tym mam elastyczne godziny pracy. Może spotkamy się w sobotę? Ściskam, Ania","upgrade":[{"plain":"wszyscy byli mili","better":"wszyscy przyjęli mnie bardzo serdecznie","ru":"живее и точнее"},{"plain":"Może spotkamy się w sobotę?","better":"Masz ochotę wyskoczyć na kawę w sobotę?","ru":"разговорная фраза уровня B1"}],"new_words":[{"pl":"współpracowników","base":"współpracownik","ru":"коллег (род. п. мн. ч.)"},{"pl":"na okres próbny","base":"okres próbny","ru":"на испытательный срок"}],"used":["dlatego"],"summary_ru":"Задание выполнено: есть работа, впечатления и приглашение. Главное — окончания: nowinę, pracuję. И не смешивай регистр: в письме подруге не нужно «Szanowna Pani»."}"#
+
+    static var sampleWritingText: WritingText {
+        let task = (try? WritingParser.task(from: writingTaskJSON)) ?? WritingTask(form: "", register: "", polecenie: "Napisz wiadomość do koleżanki.", punkty: [], words: 65, ru: "", plan: [], connectors: [], ideas: [])
+        let text = "Cześć Kasiu! Mam dla ciebie nowine: od poniedziałku pracuje w biurze blisko domu. Wczoraj byłam na pierwszym spotkaniu i wszyscy byli mili. Szanowna Pani, poza tym mam elastyczne godziny pracy. Może spotkamy się w sobotę? Ściskam, Ania"
+        let check = WritingRules.applyGuards((try? WritingParser.check(from: writingCheckJSON))!, text: text)
+        var support = SupportStats(opened: true, ideasRevealed: 2, ideasTotal: task.ideas.count)
+        support.opened = true
+        return WritingText(
+            id: "demo-writing", created: Date().addingTimeInterval(-3_600), mode: .akapit, step: .akapit, examLevel: .b1,
+            task: task, ideasDraft: "работа, коллеги, кофе", text: text, hand: false, photoId: nil, seconds: 19 * 60,
+            support: support, checklist: WritingChecklist(points: true, length: true, register: false, formulas: true, ogonki: true),
+            result: check, score: check.scores.percent, taskPoints: nil, taskWeight: nil
+        )
+    }
+
     @MainActor
     static func sampleReview() -> DraftReviewModel {
         let entries = [
@@ -139,6 +176,13 @@ struct DemoRoot: View {
             StudyView(model: study)
         case "add":
             AddWordsView()
+        case "workspace":
+            // The real path: the task of today with the fake Claude, then the workspace opens.
+            RootView()
+                .task {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    app.writing.start(.today)
+                }
         case "reader", "panel":
             // The real path: "Сгенерировать" with the fake Claude, then the app opens the reader.
             RootView()
@@ -177,6 +221,15 @@ struct DemoTransport: HTTPTransport {
     }
 
     private static func answer(to prompt: String) -> String {
+        if prompt.contains("odręczny tekst") {
+            return "Cześć Kasiu! Mam dla ciebie nowine: od poniedziałku pracuje w biurze blisko domu. Wczoraj byłam na pierwszym spotkaniu i wszyscy byli mili."
+        }
+        if prompt.contains("Jesteś egzaminatorem") {
+            return DemoMode.writingCheckJSON
+        }
+        if prompt.contains("Ułóż jedno zadanie") || prompt.contains("Przygotuj je do pracy") {
+            return DemoMode.writingTaskJSON
+        }
         if prompt.contains("Przetłumacz na rosyjski") {
             return translation(for: quoted(after: "polskie słowo lub frazę: „", in: prompt))
         }
