@@ -10,7 +10,9 @@ final class AppSettings {
         static let autosaveTexts = "reading.autosave"
         static let wantBaseForms = "cards.wantBaseForms"
         static let photoMode = "cards.photoMode"
+        static let provider = "ai.provider"
         static let model = "ai.model"
+        static let geminiModel = "ai.geminiModel"
         static let baseURL = "ai.baseURL"
         static let refusalFallback = "ai.refusalFallback"
     }
@@ -36,8 +38,18 @@ final class AppSettings {
         didSet { defaults.set(photoMode.rawValue, forKey: Key.photoMode) }
     }
 
+    /// Who answers: Claude or Gemini. Each has its own key in the Keychain.
+    var provider: AIProvider {
+        didSet { defaults.set(provider.rawValue, forKey: Key.provider) }
+    }
+
+    /// Claude model.
     var model: String {
         didSet { defaults.set(model, forKey: Key.model) }
+    }
+
+    var geminiModel: String {
+        didSet { defaults.set(geminiModel, forKey: Key.geminiModel) }
     }
 
     var baseURLString: String {
@@ -54,13 +66,16 @@ final class AppSettings {
         autosaveTexts = defaults.object(forKey: Key.autosaveTexts) as? Bool ?? true
         wantBaseForms = defaults.object(forKey: Key.wantBaseForms) as? Bool ?? true
         photoMode = defaults.string(forKey: Key.photoMode).flatMap(PhotoMode.init(rawValue:)) ?? .highlighted
+        provider = defaults.string(forKey: Key.provider).flatMap(AIProvider.init(rawValue:)) ?? .claude
         model = defaults.string(forKey: Key.model) ?? AIConfiguration.defaultModel
+        geminiModel = defaults.string(forKey: Key.geminiModel) ?? GeminiClient.defaultModel
         baseURLString = defaults.string(forKey: Key.baseURL) ?? AIConfiguration.defaultBaseURL.absoluteString
         refusalFallback = defaults.object(forKey: Key.refusalFallback) as? Bool ?? true
     }
 
     func resetConnection() {
         model = AIConfiguration.defaultModel
+        geminiModel = GeminiClient.defaultModel
         baseURLString = AIConfiguration.defaultBaseURL.absoluteString
         refusalFallback = true
     }

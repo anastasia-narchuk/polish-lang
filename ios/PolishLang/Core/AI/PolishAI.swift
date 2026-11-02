@@ -13,7 +13,7 @@ struct PolishAI: Sendable {
     /// Photos per recognition request (TZ 1, section 2.3).
     static let maxPhotos = 3
 
-    var client = AnthropicClient()
+    var client: any AIBackend = AnthropicClient()
     var config: AIConfiguration
 
     /// TZ 1, 4.1, in batches of 40. A failed batch leaves its rows empty and stops the rest.

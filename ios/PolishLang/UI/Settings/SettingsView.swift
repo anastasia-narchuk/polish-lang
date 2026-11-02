@@ -42,9 +42,14 @@ struct SettingsView: View {
     }
 
     private var apiGroup: some View {
-        group("Claude API", footer: "Ключ хранится только на этом устройстве, в Keychain, и отправляется только в Anthropic. Создать ключ: console.anthropic.com → API Keys.") {
-            if ai.hasKey {
-                InfoRow(icon: "checkmark.seal.fill", title: "Ключ сохранён", subtitle: "в Keychain этого устройства")
+        @Bindable var settings = settings
+        let provider = settings.provider
+        return group("AI", footer: keyFooter(provider)) {
+            SegmentedPills(items: AIProvider.allCases, title: { $0.title }, selection: $settings.provider)
+                .padding(.vertical, 16)
+            Hairline()
+            if ai.hasKey(for: provider) {
+                InfoRow(icon: "checkmark.seal.fill", title: "Ключ \(provider.title) сохранён", subtitle: "в Keychain этого устройства")
                 Hairline()
                 Button {
                     Task { await runCheck() }
@@ -64,7 +69,7 @@ struct SettingsView: View {
                 Hairline()
                 Button(role: .destructive) {
                     if deleteKeyArmed {
-                        ai.deleteKey()
+                        ai.deleteKey(for: provider)
                         deleteKeyArmed = false
                         check = .idle
                     } else {
@@ -80,7 +85,7 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
             } else {
                 VStack(alignment: .leading, spacing: 12) {
-                    SecureField("sk-ant-…", text: $keyDraft)
+                    SecureField(provider == .claude ? "sk-ant-…" : "Ключ Gemini (AQ.… или AIza…)", text: $keyDraft)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .onSubmit(saveKey)
@@ -98,6 +103,20 @@ struct SettingsView: View {
                 Banner(text: message, style: .error)
                     .padding(.bottom, 16)
             }
+        }
+        .onChange(of: settings.provider) { _, _ in
+            check = .idle
+            deleteKeyArmed = false
+            keyDraft = ""
+        }
+    }
+
+    private func keyFooter(_ provider: AIProvider) -> String {
+        switch provider {
+        case .claude:
+            return "Ключ хранится только на этом устройстве, в Keychain, и отправляется только в Anthropic. Создать ключ: console.anthropic.com → API Keys."
+        case .gemini:
+            return "Ключ хранится только на этом устройстве, в Keychain, и отправляется только в Google. Создать ключ: aistudio.google.com → API keys. Бесплатный тариф есть только у проекта без привязанного биллинга; на нём Google может использовать запросы для улучшения своих моделей. Проверка подключения тратит 1 запрос из дневного лимита."
         }
     }
 
@@ -117,14 +136,15 @@ struct SettingsView: View {
 
     private var advancedGroup: some View {
         @Bindable var settings = settings
-        return group("Для опытных", footer: "По умолчанию \(AIConfiguration.defaultModel) и \(AIConfiguration.defaultBaseURL.absoluteString). Адрес можно заменить на свой прокси, совместимый с Messages API. Резервная модель: если Claude откажется отвечать из-за правил безопасности, запрос повторит другая модель (бета-функция API).") {
+        return group("Для опытных", footer: "По умолчанию: Claude — \(AIConfiguration.defaultModel) и \(AIConfiguration.defaultBaseURL.absoluteString), Gemini — \(GeminiClient.defaultModel). Адрес Claude можно заменить на свой прокси, совместимый с Messages API. Резервная модель (только для Claude): если Claude откажется отвечать из-за правил безопасности, запрос повторит другая модель (бета-функция API).") {
             VStack(alignment: .leading, spacing: 16) {
-                LabeledTextField(title: "Модель", text: $settings.model, polish: false)
-                LabeledTextField(title: "Адрес API", text: $settings.baseURLString, polish: false, keyboard: .URL)
+                LabeledTextField(title: "Модель Claude", text: $settings.model, polish: false)
+                LabeledTextField(title: "Адрес API Claude", text: $settings.baseURLString, polish: false, keyboard: .URL)
+                LabeledTextField(title: "Модель Gemini", text: $settings.geminiModel, polish: false)
             }
             .padding(.vertical, 20)
             Hairline()
-            toggleRow("Резервная модель при отказе", isOn: $settings.refusalFallback)
+            toggleRow("Резервная модель Claude при отказе", isOn: $settings.refusalFallback)
             Hairline()
             Button("Вернуть по умолчанию") {
                 settings.resetConnection()

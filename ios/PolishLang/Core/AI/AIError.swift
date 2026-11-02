@@ -9,6 +9,10 @@ enum AIError: Error, Equatable, Sendable {
     case unauthorized
     case forbidden(String)
     case billing
+    /// Gemini: the key's project has billing linked and no prepaid credit left (HTTP 402).
+    case paymentRequired
+    /// Gemini free tier: the requests of the day are used up.
+    case dailyLimit
     case modelNotFound(String)
     case rateLimited(retryAfter: TimeInterval?)
     case overloaded
@@ -23,13 +27,15 @@ enum AIError: Error, Equatable, Sendable {
 
     var userMessage: String {
         switch self {
-        case .notConfigured: return "AI не подключён: добавь API-ключ Claude в настройках."
+        case .notConfigured: return "AI не подключён: добавь API-ключ Claude или Gemini в настройках."
         case .offline: return "Нет подключения к интернету."
         case .timeout: return "AI слишком долго отвечал. Попробуй ещё раз."
         case .cancelled: return "Остановлено."
         case .unauthorized: return "API-ключ не подошёл. Проверь его в настройках."
         case .forbidden(let message): return "Доступ запрещён: \(message)"
         case .billing: return "Проблема с оплатой в аккаунте Anthropic."
+        case .paymentRequired: return "Gemini не отвечает: у проекта этого ключа подключён биллинг, а предоплата закончилась. Бесплатный тариф работает только в проекте без биллинга: aistudio.google.com → API keys → Create API key в новом проекте."
+        case .dailyLimit: return "Дневной лимит бесплатного тарифа Gemini исчерпан. Он обновится около 9:00 по Варшаве (в полночь по тихоокеанскому времени)."
         case .modelNotFound(let model): return "Модель \(model) недоступна для этого ключа. Проверь название модели в настройках."
         case .rateLimited: return "Подожди минуту: слишком частые запросы."
         case .overloaded: return "AI сейчас перегружен. Попробуй через минуту."

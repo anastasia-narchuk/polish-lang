@@ -10,6 +10,7 @@ struct AIConfiguration: Equatable, Sendable {
     static let fallbackModels: Set<String> = ["claude-sonnet-5-5", "claude-opus-5-5", "claude-opus-5", "claude-fable-5-1"]
 
     var apiKey: String
+    var provider: AIProvider = .claude
     var model: String = AIConfiguration.defaultModel
     var baseURL: URL = AIConfiguration.defaultBaseURL
     var refusalFallback: Bool = true

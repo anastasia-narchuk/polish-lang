@@ -174,7 +174,9 @@ final class ReadingSession {
         case .invalidResponse, .truncated:
             return .failed(message: "Ответ AI обрезан или пришёл в неверном формате.", canRetry: true)
         case .notConfigured:
-            return .failed(message: "Генерация недоступна: добавь API-ключ Claude в настройках. История и сохранённые тексты читаются как обычно.", canRetry: false)
+            return .failed(message: "Генерация недоступна: добавь API-ключ Claude или Gemini в настройках. История и сохранённые тексты читаются как обычно.", canRetry: false)
+        case .dailyLimit, .paymentRequired:
+            return .failed(message: error.userMessage, canRetry: false)
         case .offline:
             return .failed(message: "Нет подключения к интернету. История и сохранённые тексты читаются как обычно.", canRetry: true)
         default:

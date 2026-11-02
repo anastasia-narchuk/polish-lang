@@ -82,7 +82,7 @@ struct DraftReviewView: View {
     private func failureView(_ failure: AIError) -> some View {
         switch failure {
         case .notConfigured:
-            Banner(text: "Перевод можно вписать вручную. AI подключается в настройках: нужен API-ключ Claude.", style: .info)
+            Banner(text: "Перевод можно вписать вручную. AI подключается в настройках: нужен API-ключ Claude или Gemini.", style: .info)
         case .offline:
             Banner(text: "Нет подключения к интернету. Перевод можно вписать вручную.", style: .info)
             retryButton
