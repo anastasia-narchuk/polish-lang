@@ -98,6 +98,7 @@ jobs:
           shoot writing 09-writing
           shoot workspace 14-writing-workspace 10
           shoot feedback 15-writing-feedback
+          shoot feedback-text 19-writing-feedback-text 8
           xcrun simctl ui "$UDID" appearance dark
           shoot reader 10-reader-dark
           shoot panel 11-reader-translation-dark 8

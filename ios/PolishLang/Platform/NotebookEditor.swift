@@ -221,8 +221,14 @@ final class PolishLettersInputView: UIInputView {
 
     init(target: NotebookTextView) {
         self.target = target
-        super.init(frame: CGRect(x: 0, y: 0, width: 320, height: 50), inputViewStyle: .keyboard)
+        super.init(frame: CGRect(x: 0, y: 0, width: 320, height: 50), inputViewStyle: .default)
         allowsSelfSizing = true
+        // Opaque: the iOS 26 keyboard is glass, and the text must not show through the bar.
+        backgroundColor = UIColor(Theme.surface)
+        let hairline = UIView()
+        hairline.backgroundColor = UIColor(Theme.line)
+        hairline.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hairline)
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.distribution = .fillEqually
@@ -246,6 +252,10 @@ final class PolishLettersInputView: UIInputView {
         }
         addSubview(stack)
         NSLayoutConstraint.activate([
+            hairline.topAnchor.constraint(equalTo: topAnchor),
+            hairline.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hairline.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hairline.heightAnchor.constraint(equalToConstant: 1),
             stack.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
@@ -259,12 +269,17 @@ final class PolishLettersInputView: UIInputView {
         fatalError("init(coder:) is not used")
     }
 
+    /// Like keyboard keys: opaque, with a thin shadow under them.
     private func style(_ button: UIButton) {
-        button.backgroundColor = UIColor(Theme.fill)
+        button.backgroundColor = UIColor(Theme.background)
         button.tintColor = UIColor(Theme.text)
         button.setTitleColor(UIColor(Theme.text), for: .normal)
         button.layer.cornerRadius = 8
         button.layer.cornerCurve = .continuous
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.18
+        button.layer.shadowRadius = 0
+        button.layer.shadowOffset = CGSize(width: 0, height: 1)
     }
 
     @objc private func typeLetter(_ sender: UIButton) {

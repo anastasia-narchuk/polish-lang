@@ -107,7 +107,7 @@ struct TextErrorEntry: Identifiable, Codable, Hashable, Sendable {
     /// A line of "Мои ловушки".
     var trapLine: String {
         if id == Self.registerID { return "Pan/Pani или ty — не смешивай" }
-        let pair = "\(fragment) → \(correction)"
+        let pair = correction.isEmpty ? "\(fragment) — убрать" : "\(fragment) → \(correction)"
         return cat.map { "\($0): \(pair)" } ?? pair
     }
 }

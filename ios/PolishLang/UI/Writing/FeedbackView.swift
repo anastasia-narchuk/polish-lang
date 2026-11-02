@@ -91,6 +91,15 @@ struct FeedbackView: View {
                 }
                 return .handled
             })
+            #if DEBUG
+            .task {
+                // Demo screenshots: the text with the red-pen marks and the first mistake selected.
+                guard DemoMode.screen == "feedback-text" else { return }
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                activeError = 0
+                proxy.scrollTo("marked-text", anchor: .top)
+            }
+            #endif
         }
         .screenBackground()
         .navigationTitle("Разбор")
@@ -240,6 +249,9 @@ struct FeedbackView: View {
 
     private var markedText: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Color.clear
+                .frame(height: 0)
+                .id("marked-text")
             SectionHeader(title: "Твой текст") {
                 Text(result.errors.isEmpty ? "ошибок не найдено" : "нажми на подчёркнутое")
                     .font(.ui(.footnote))
@@ -323,7 +335,7 @@ struct FeedbackView: View {
                         .foregroundStyle(Theme.mistakeInk)
                     Text("→")
                         .foregroundStyle(Theme.textTertiary)
-                    Text(error.correction)
+                    Text(error.correction.isEmpty ? "убрать" : error.correction)
                         .fontWeight(.semibold)
                         .foregroundStyle(Theme.fixInk)
                 }

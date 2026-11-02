@@ -367,6 +367,7 @@ final class WritingTests: XCTestCase {
         XCTAssertEqual(traps.count, 3)
         XCTAssertEqual(traps.first?.trapLine, "rz/ż: żeka → rzeka", "count 1 today beats count 2 ten days ago")
         XCTAssertTrue(traps.contains { $0.trapLine == "Pan/Pani или ty — не смешивай" })
+        XCTAssertEqual(TextErrorEntry(id: "x", fragment: "Szanowna Pani,", correction: "", type: "leksyka", cat: nil, ruleRu: "", count: 1, lastSeen: Date(), drilled: 0, source: "").trapLine, "Szanowna Pani, — убрать")
         XCTAssertEqual(app.textErrors.entries.first { $0.fragment == "jasna kuchnie" }?.count, 2)
     }
 }

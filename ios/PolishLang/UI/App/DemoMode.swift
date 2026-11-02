@@ -10,7 +10,7 @@ import SwiftUI
 ///
 ///     -demo                    sample data in a temporary folder, fake AI
 ///     -demo-screen <name>      setup, reader, panel, cards, add, review, study, settings, writing,
-///                              workspace, feedback
+///                              workspace, feedback, feedback-text
 enum DemoMode {
     private static let arguments = ProcessInfo.processInfo.arguments
 
@@ -63,7 +63,7 @@ enum DemoMode {
             app.tab = .settings
         case "writing", "workspace":
             app.tab = .writing
-        case "feedback":
+        case "feedback", "feedback-text":
             app.tab = .writing
             app.writing.path = [.feedback(sampleWritingText.id)]
         default:
